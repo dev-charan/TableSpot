@@ -8,9 +8,31 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-const { initDB } = require('./config/db');
+const { initDB, pool } = require('./config/db');
 const setupSocket = require('./socket');
 const errorHandler = require('./middleware/errorHandler');
+const bcrypt = require('bcryptjs');
+
+async function seedAdmin() {
+  try {
+    const email = process.env.ADMIN_EMAIL || 'admin@tablespot.com';
+    const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows[0]) {
+      await pool.query("UPDATE users SET role = 'admin' WHERE email = $1", [email]);
+      console.log(`Admin role ensured for ${email}`);
+    } else {
+      const hash = await bcrypt.hash(password, 12);
+      await pool.query(
+        "INSERT INTO users (name, email, password_hash, role) VALUES ($1,$2,$3,'admin')",
+        ['Super Admin', email, hash]
+      );
+      console.log(`Admin created: ${email}`);
+    }
+  } catch (err) {
+    console.error('Admin seed failed:', err.message);
+  }
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -51,5 +73,6 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 initDB()
+  .then(() => seedAdmin())
   .then(() => server.listen(PORT, () => console.log(`Server running on port ${PORT}`)))
   .catch((err) => { console.error('DB init failed:', err); process.exit(1); });
