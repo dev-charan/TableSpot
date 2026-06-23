@@ -1,0 +1,10 @@
+node_modules/
+.env
+dist/
+backend/uploads/restaurants/*
+backend/uploads/menus/*
+backend/uploads/hotels/*
+!backend/uploads/restaurants/.gitkeep
+!backend/uploads/menus/.gitkeep
+!backend/uploads/hotels/.gitkeep
+*.log

@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    @apply bg-dark-900 text-white font-sans antialiased;
+    background-image: radial-gradient(ellipse at top, #1c1c28 0%, #0a0a0f 70%);
+    min-height: 100vh;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-dark-800; }
+  ::-webkit-scrollbar-thumb { @apply bg-dark-500 rounded-full; }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+  .glass-hover {
+    @apply hover:bg-white/10 transition-all duration-300;
+  }
+  .btn-primary {
+    @apply bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-2.5 rounded-xl
+           transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply bg-white/5 hover:bg-white/10 text-white font-medium px-6 py-2.5 rounded-xl
+           border border-white/10 transition-all duration-200 active:scale-95;
+  }
+  .input {
+    @apply w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-3 text-white
+           placeholder-white/30 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500
+           transition-all duration-200;
+  }
+  .card {
+    @apply glass rounded-2xl overflow-hidden;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full;
+  }
+}
+
+.leaflet-container {
+  @apply rounded-xl;
+  z-index: 0;
+}
+
+.star-rating span { cursor: pointer; font-size: 1.5rem; }
