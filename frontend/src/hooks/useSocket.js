@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { SERVER_URL } from '../config';
 
 let socketInstance = null;
 
 const getSocket = () => {
   if (!socketInstance) {
-    socketInstance = io('http://localhost:5000', { autoConnect: false });
+    socketInstance = io(SERVER_URL, { autoConnect: false });
   }
   return socketInstance;
 };

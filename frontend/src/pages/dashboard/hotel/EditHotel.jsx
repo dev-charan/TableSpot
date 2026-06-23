@@ -5,10 +5,11 @@ import { Save, Upload, X, MapPin, Phone, Globe, Clock, Image, Info, Star } from 
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 import MapPicker from '../../../components/MapPicker';
+import { SERVER_URL } from '../../../config';
 
 const ALL_AMENITIES = ['WiFi', 'Parking', 'Pool', 'Gym', 'Restaurant', 'Spa', 'Bar', 'Room Service', 'Laundry', 'Airport Shuttle', 'Business Center', 'Pet Friendly'];
 const SECTIONS = ['Basic Info', 'Location', 'Amenities & Hours', 'Photos'];
-const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const BASE = SERVER_URL;
 
 export default function EditHotel() {
   const { hotelId, hotels } = useOutletContext();

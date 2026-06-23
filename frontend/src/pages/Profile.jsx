@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import { SERVER_URL } from '../config';
 
 const roleLabel = {
   user: { label: 'Diner', color: 'bg-white/10 text-white/60', icon: User },
@@ -104,7 +105,7 @@ export default function Profile() {
 
   const roleCfg = roleLabel[user?.role] || roleLabel.user;
   const RoleIcon = roleCfg.icon;
-  const avatarSrc = avatarPreview || (user?.avatar ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${user.avatar}` : null);
+  const avatarSrc = avatarPreview || (user?.avatar ? `${SERVER_URL}${user.avatar}` : null);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6 animate-fade-in">

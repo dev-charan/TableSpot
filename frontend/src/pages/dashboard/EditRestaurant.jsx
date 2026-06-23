@@ -5,10 +5,11 @@ import { Upload, Save, X, MapPin, Phone, Globe, Clock, Image, Info } from 'lucid
 import toast from 'react-hot-toast';
 import api from '../../api/axios';
 import MapPicker from '../../components/MapPicker';
+import { SERVER_URL } from '../../config';
 
 const SECTIONS = ['Basic Info', 'Location', 'Contact & Hours', 'Photos'];
 
-const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const BASE = SERVER_URL;
 
 export default function EditRestaurant() {
   const { restaurants, restaurantId } = useOutletContext();
