@@ -17,7 +17,7 @@ export default function RegisterRestaurant() {
   const [form, setForm] = useState({
     name: '', description: '', cuisine_type: '', address: '', city: '',
     state: '', country: 'India', lat: '', lng: '', phone: '', website: '',
-    price_range: '2', osm_id: '',
+    price_range: '2', osm_id: '', maps_url: '',
     opening_hours: JSON.stringify({ open: '11:00', close: '23:00' }),
   });
   const [coverImage, setCoverImage] = useState(null);
@@ -54,8 +54,23 @@ export default function RegisterRestaurant() {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to create restaurant'),
   });
 
+  const nextStep = () => {
+    if (step === 0) {
+      if (!form.name.trim()) return toast.error('Restaurant name is required');
+      if (!form.city.trim()) return toast.error('City is required');
+    }
+    if (step === 1) {
+      if (!form.address.trim()) return toast.error('Address is required');
+      if (!form.maps_url.trim()) return toast.error('Google Maps link is required');
+    }
+    setStep((s) => s + 1);
+  };
+
   const handleSubmit = () => {
-    if (!form.name || !form.address || !form.city) return toast.error('Fill all required fields');
+    if (!form.name.trim()) return toast.error('Restaurant name is required');
+    if (!form.city.trim()) return toast.error('City is required');
+    if (!form.address.trim()) return toast.error('Address is required');
+    if (!form.maps_url.trim()) return toast.error('Google Maps link is required');
 
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => fd.append(k, v));
@@ -146,7 +161,7 @@ export default function RegisterRestaurant() {
             </div>
             <div>
               <label className="text-sm text-white/60 mb-2 block">
-                Pin Location on Map <span className="text-white/30">(click to set)</span>
+                Pin Location on Map <span className="text-white/30">(optional · click to set)</span>
               </label>
               <MapPicker
                 lat={mapPos?.lat || form.lat}
@@ -159,6 +174,11 @@ export default function RegisterRestaurant() {
                   {mapPos.lat.toFixed(6)}, {mapPos.lng.toFixed(6)}
                 </p>
               )}
+            </div>
+            <div>
+              <label className="text-sm text-white/60 mb-1.5 block">Google Maps Link *</label>
+              <input value={form.maps_url} onChange={f('maps_url')} className="input" placeholder="https://maps.google.com/..." />
+              <p className="text-xs text-white/30 mt-1">Paste the Google Maps URL for your restaurant location</p>
             </div>
           </div>
         )}
@@ -238,7 +258,7 @@ export default function RegisterRestaurant() {
             Back
           </button>
           {step < steps.length - 1 ? (
-            <button onClick={() => setStep((s) => s + 1)} className="btn-primary">Continue</button>
+            <button onClick={nextStep} className="btn-primary">Continue</button>
           ) : (
             <button onClick={handleSubmit} disabled={createMutation.isPending} className="btn-primary">
               {createMutation.isPending ? 'Registering...' : 'Register Restaurant'}

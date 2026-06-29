@@ -23,7 +23,7 @@ export default function EditHotel() {
   const [form, setForm] = useState({
     name: '', description: '', star_rating: '3', hotel_type: 'hotel',
     address: '', city: '', state: '', country: 'India',
-    lat: '', lng: '', phone: '', website: '',
+    lat: '', lng: '', phone: '', website: '', maps_url: '',
     check_in_time: '14:00', check_out_time: '11:00',
     amenities: [],
   });
@@ -47,6 +47,7 @@ export default function EditHotel() {
       lng: hotel.lng || '',
       phone: hotel.phone || '',
       website: hotel.website || '',
+      maps_url: hotel.maps_url || '',
       check_in_time: hotel.check_in_time || '14:00',
       check_out_time: hotel.check_out_time || '11:00',
       amenities: hotel.amenities || [],
@@ -96,6 +97,7 @@ export default function EditHotel() {
     if (!form.name.trim()) return toast.error('Hotel name is required');
     if (!form.address.trim()) return toast.error('Address is required');
     if (!form.city.trim()) return toast.error('City is required');
+    if (!form.maps_url.trim()) return toast.error('Google Maps link is required');
 
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => {
@@ -211,8 +213,14 @@ export default function EditHotel() {
           </div>
 
           <div>
+            <label className="text-sm text-white/60 mb-1.5 block flex items-center gap-1"><MapPin size={12} /> Google Maps Link *</label>
+            <input value={form.maps_url} onChange={f('maps_url')} className="input" placeholder="https://maps.google.com/..." />
+            <p className="text-xs text-white/30 mt-1">Paste the Google Maps URL for your hotel</p>
+          </div>
+
+          <div>
             <label className="text-sm text-white/60 mb-2 block">
-              Pin Location <span className="text-white/30 font-normal">(click map to reposition)</span>
+              Pin Location <span className="text-white/30 font-normal">(optional · click map to reposition)</span>
             </label>
             <div className="rounded-xl overflow-hidden border border-white/10">
               <MapPicker

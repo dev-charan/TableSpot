@@ -21,7 +21,7 @@ export default function RegisterHotel() {
   const [form, setForm] = useState({
     name: '', description: '', star_rating: '3', hotel_type: 'hotel',
     address: '', city: '', state: '', country: 'India',
-    lat: '', lng: '', phone: '', website: '', osm_id: '',
+    lat: '', lng: '', phone: '', website: '', osm_id: '', maps_url: '',
     check_in_time: '14:00', check_out_time: '11:00',
     amenities: [],
   });
@@ -55,8 +55,23 @@ export default function RegisterHotel() {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   });
 
+  const nextStep = () => {
+    if (step === 0) {
+      if (!form.name.trim()) return toast.error('Hotel name is required');
+      if (!form.city.trim()) return toast.error('City is required');
+    }
+    if (step === 1) {
+      if (!form.address.trim()) return toast.error('Address is required');
+      if (!form.maps_url.trim()) return toast.error('Google Maps link is required');
+    }
+    setStep((s) => s + 1);
+  };
+
   const handleSubmit = () => {
-    if (!form.name || !form.address || !form.city) return toast.error('Fill required fields');
+    if (!form.name.trim()) return toast.error('Hotel name is required');
+    if (!form.city.trim()) return toast.error('City is required');
+    if (!form.address.trim()) return toast.error('Address is required');
+    if (!form.maps_url.trim()) return toast.error('Google Maps link is required');
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => {
       if (k === 'amenities') fd.append(k, JSON.stringify(v));
@@ -146,7 +161,7 @@ export default function RegisterHotel() {
               </div>
             </div>
             <div>
-              <label className="text-sm text-white/60 mb-2 block">Pin Location <span className="text-white/30">(click map to set)</span></label>
+              <label className="text-sm text-white/60 mb-2 block">Pin Location <span className="text-white/30">(optional · click map to set)</span></label>
               <MapPicker lat={mapPos?.lat || form.lat} lng={mapPos?.lng || form.lng} onPick={setMapPos} height="280px" />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -158,6 +173,11 @@ export default function RegisterHotel() {
                 <label className="text-sm text-white/60 mb-1.5 block">Website</label>
                 <input value={form.website} onChange={f('website')} className="input" placeholder="https://..." />
               </div>
+            </div>
+            <div>
+              <label className="text-sm text-white/60 mb-1.5 block">Google Maps Link *</label>
+              <input value={form.maps_url} onChange={f('maps_url')} className="input" placeholder="https://maps.google.com/..." />
+              <p className="text-xs text-white/30 mt-1">Paste the Google Maps URL for your hotel location</p>
             </div>
           </div>
         )}
@@ -224,7 +244,7 @@ export default function RegisterHotel() {
         <div className="flex justify-between pt-2">
           <button onClick={() => setStep((s) => s - 1)} disabled={step === 0} className="btn-ghost disabled:opacity-30">Back</button>
           {step < steps.length - 1 ? (
-            <button onClick={() => setStep((s) => s + 1)} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-xl transition-all">Continue</button>
+            <button onClick={nextStep} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-xl transition-all">Continue</button>
           ) : (
             <button onClick={handleSubmit} disabled={createMutation.isPending} className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2.5 rounded-xl transition-all">
               {createMutation.isPending ? 'Registering...' : 'Register Hotel'}

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Star, MapPin, Wifi, Car, Waves, Dumbbell, UtensilsCrossed, Sparkles } from 'lucide-react';
+import { Star, MapPin, Wifi, Car, Waves, Dumbbell, UtensilsCrossed, Sparkles, ExternalLink } from 'lucide-react';
 
 const amenityIcons = {
   WiFi: Wifi, Parking: Car, Pool: Waves, Gym: Dumbbell, Restaurant: UtensilsCrossed, Spa: Sparkles,
@@ -11,7 +11,7 @@ export default function HotelCard({ hotel }) {
   const {
     id, name, star_rating, hotel_type, city, address,
     cover_image, avg_rating, total_reviews, amenities,
-    min_price, max_price, total_bookings,
+    min_price, max_price, total_bookings, maps_url,
   } = hotel;
 
   return (
@@ -56,8 +56,17 @@ export default function HotelCard({ hotel }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 text-white/50 text-xs mb-3">
-          <MapPin size={11} /> <span className="line-clamp-1">{city || address}</span>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1 text-white/50 text-xs">
+            <MapPin size={11} /> <span className="line-clamp-1">{city || address}</span>
+          </div>
+          {maps_url && (
+            <a href={maps_url} target="_blank" rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 shrink-0 transition-colors">
+              <ExternalLink size={10} /> Maps
+            </a>
+          )}
         </div>
 
         {amenities?.length > 0 && (

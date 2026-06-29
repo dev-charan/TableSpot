@@ -23,7 +23,7 @@ export default function EditRestaurant() {
   const [form, setForm] = useState({
     name: '', description: '', cuisine_type: '', price_range: '2',
     address: '', city: '', state: '', country: 'India', lat: '', lng: '',
-    phone: '', website: '',
+    phone: '', website: '', maps_url: '',
     opening_hours: JSON.stringify({ open: '11:00', close: '23:00' }),
   });
   const [mapPos, setMapPos] = useState(null);
@@ -47,6 +47,7 @@ export default function EditRestaurant() {
       lng: restaurant.lng || '',
       phone: restaurant.phone || '',
       website: restaurant.website || '',
+      maps_url: restaurant.maps_url || '',
       opening_hours: restaurant.opening_hours
         ? JSON.stringify(restaurant.opening_hours)
         : JSON.stringify({ open: '11:00', close: '23:00' }),
@@ -90,6 +91,7 @@ export default function EditRestaurant() {
     if (!form.name.trim()) return toast.error('Restaurant name is required');
     if (!form.address.trim()) return toast.error('Address is required');
     if (!form.city.trim()) return toast.error('City is required');
+    if (!form.maps_url.trim()) return toast.error('Google Maps link is required');
 
     const fd = new FormData();
     Object.entries(form).forEach(([k, v]) => { if (v !== '') fd.append(k, v); });
@@ -188,7 +190,7 @@ export default function EditRestaurant() {
 
           <div>
             <label className="text-sm text-white/60 mb-2 block">
-              Pin Location <span className="text-white/30 font-normal">(click on map to reposition)</span>
+              Pin Location <span className="text-white/30 font-normal">(optional · click to reposition)</span>
             </label>
             <div className="rounded-xl overflow-hidden border border-white/10">
               <MapPicker
@@ -221,6 +223,12 @@ export default function EditRestaurant() {
               <label className="text-sm text-white/60 mb-1.5 block flex items-center gap-1"><Globe size={12} /> Website</label>
               <input value={form.website} onChange={f('website')} className="input" placeholder="https://..." />
             </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-white/60 mb-1.5 block flex items-center gap-1"><MapPin size={12} /> Google Maps Link *</label>
+            <input value={form.maps_url} onChange={f('maps_url')} className="input" placeholder="https://maps.google.com/..." />
+            <p className="text-xs text-white/30 mt-1">Paste the Google Maps URL for your restaurant</p>
           </div>
 
           <div>

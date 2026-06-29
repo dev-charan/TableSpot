@@ -17,9 +17,9 @@ async function seedAdmin() {
   try {
     const email = process.env.ADMIN_EMAIL || 'admin@tablespot.com';
     const password = process.env.ADMIN_PASSWORD || 'admin123';
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    const existing = await pool.query("SELECT id FROM users WHERE email = $1 AND role = 'admin'", [email]);
     if (existing.rows[0]) {
-      await pool.query("UPDATE users SET role = 'admin' WHERE email = $1", [email]);
+      await pool.query("UPDATE users SET role = 'admin' WHERE email = $1 AND role = 'admin'", [email]);
       console.log(`Admin role ensured for ${email}`);
     } else {
       const hash = await bcrypt.hash(password, 12);

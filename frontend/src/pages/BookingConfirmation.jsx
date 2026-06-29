@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   CheckCircle, Calendar, Clock, Users, BedDouble,
-  IndianRupee, ArrowRight, Moon,
+  IndianRupee, ArrowRight, Moon, ExternalLink, Printer,
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 
@@ -101,10 +101,31 @@ export default function BookingConfirmation() {
           </p>
         </div>
 
+        {(hotel?.maps_url || restaurant?.maps_url) && (
+          <a
+            href={hotel?.maps_url || restaurant?.maps_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass rounded-2xl p-4 flex items-center gap-3 border border-white/10 hover:border-white/20 transition-colors"
+          >
+            <ExternalLink size={16} className="text-white/50 shrink-0" />
+            <div>
+              <p className="text-sm font-medium">View on Google Maps</p>
+              <p className="text-xs text-white/40 truncate">{hotel?.maps_url || restaurant?.maps_url}</p>
+            </div>
+          </a>
+        )}
+
         <div className="space-y-3">
           <Link to="/my-bookings" className="btn-primary w-full flex items-center justify-center gap-2">
             View My Bookings <ArrowRight size={16} />
           </Link>
+          <button
+            onClick={() => window.print()}
+            className="btn-ghost w-full flex items-center justify-center gap-2 text-sm"
+          >
+            <Printer size={15} /> Print / Save as PDF
+          </button>
           <Link
             to={isHotel ? `/hotel/${booking.hotel_id}` : `/restaurant/${booking.restaurant_id}`}
             className="btn-ghost w-full block text-center text-sm"

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Star, MapPin, Clock, Users, TrendingUp } from 'lucide-react';
+import { Star, MapPin, Clock, Users, TrendingUp, ExternalLink } from 'lucide-react';
 
 const priceLabel = (p) => ['', '₹', '₹₹', '₹₹₹', '₹₹₹₹'][p] || '₹₹';
 
@@ -7,7 +7,7 @@ export default function RestaurantCard({ restaurant }) {
   const {
     id, name, cuisine_type, address, city, cover_image,
     avg_rating, total_reviews, price_range, today_bookings,
-    opening_hours, total_bookings,
+    opening_hours, total_bookings, maps_url,
   } = restaurant;
 
   return (
@@ -58,9 +58,18 @@ export default function RestaurantCard({ restaurant }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 text-white/50 text-xs mb-3">
-          <MapPin size={11} />
-          <span className="line-clamp-1">{city || address}</span>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1 text-white/50 text-xs">
+            <MapPin size={11} />
+            <span className="line-clamp-1">{city || address}</span>
+          </div>
+          {maps_url && (
+            <a href={maps_url} target="_blank" rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 shrink-0 transition-colors">
+              <ExternalLink size={10} /> Maps
+            </a>
+          )}
         </div>
 
         <div className="flex items-center justify-between text-xs text-white/40">

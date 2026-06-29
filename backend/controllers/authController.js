@@ -8,11 +8,14 @@ const signToken = (id) =>
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, phone, role } = req.body;
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows[0]) return res.status(400).json({ message: 'Email already registered' });
 
     const allowedRoles = ['user', 'restaurant_owner', 'hotel_owner'];
     const userRole = allowedRoles.includes(role) ? role : 'user';
+
+    const existing = await pool.query(
+      'SELECT id FROM users WHERE email = $1 AND role = $2', [email, userRole]
+    );
+    if (existing.rows[0]) return res.status(400).json({ message: 'Account already exists for this email and role' });
 
     const hash = await bcrypt.hash(password, 12);
     const { rows } = await pool.query(
@@ -28,8 +31,11 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const { email, password, role } = req.body;
+    const loginRole = role || 'user';
+    const { rows } = await pool.query(
+      'SELECT * FROM users WHERE email = $1 AND role = $2', [email, loginRole]
+    );
     const user = rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ message: 'Invalid email or password' });

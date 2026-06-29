@@ -61,7 +61,7 @@ exports.createRestaurant = async (req, res, next) => {
   try {
     const {
       name, description, cuisine_type, address, city, state, country,
-      lat, lng, phone, website, opening_hours, price_range, osm_id,
+      lat, lng, phone, website, opening_hours, price_range, osm_id, maps_url,
     } = req.body;
 
     const cover_image = req.files?.cover_image?.[0]
@@ -75,14 +75,14 @@ exports.createRestaurant = async (req, res, next) => {
     const { rows } = await pool.query(
       `INSERT INTO restaurants
         (owner_id, name, description, cuisine_type, address, city, state, country,
-         lat, lng, phone, website, opening_hours, price_range, cover_image, images, osm_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         lat, lng, phone, website, opening_hours, price_range, cover_image, images, osm_id, maps_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING *`,
       [
         req.user.id, name, description, cuisine_type, address, city, state,
         country || 'India', lat, lng, phone, website,
         opening_hours ? JSON.parse(opening_hours) : { open: '11:00', close: '23:00' },
-        price_range || 2, cover_image, images, osm_id,
+        price_range || 2, cover_image, images, osm_id, maps_url || null,
       ]
     );
 
@@ -198,7 +198,7 @@ exports.updateRestaurant = async (req, res, next) => {
 
     const textFields = [
       'name', 'description', 'cuisine_type', 'address', 'city', 'state', 'country',
-      'phone', 'website', 'price_range', 'lat', 'lng', 'opening_hours',
+      'phone', 'website', 'price_range', 'lat', 'lng', 'opening_hours', 'maps_url',
     ];
     const updates = [];
     const values = [];

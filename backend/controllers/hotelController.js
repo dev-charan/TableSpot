@@ -63,7 +63,7 @@ exports.createHotel = async (req, res, next) => {
   try {
     const {
       name, description, star_rating, hotel_type, address, city, state, country,
-      lat, lng, phone, website, amenities, check_in_time, check_out_time, osm_id,
+      lat, lng, phone, website, amenities, check_in_time, check_out_time, osm_id, maps_url,
     } = req.body;
 
     const cover_image = req.files?.cover_image?.[0]
@@ -81,14 +81,14 @@ exports.createHotel = async (req, res, next) => {
     const { rows } = await pool.query(
       `INSERT INTO hotels
         (owner_id, name, description, star_rating, hotel_type, address, city, state, country,
-         lat, lng, phone, website, amenities, check_in_time, check_out_time, cover_image, images, osm_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+         lat, lng, phone, website, amenities, check_in_time, check_out_time, cover_image, images, osm_id, maps_url)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING *`,
       [
         req.user.id, name, description, star_rating || 3, hotel_type || 'hotel',
         address, city, state, country || 'India', lat, lng, phone, website,
         amenitiesArr, check_in_time || '14:00', check_out_time || '11:00',
-        cover_image, images, osm_id,
+        cover_image, images, osm_id, maps_url || null,
       ]
     );
 
@@ -185,7 +185,7 @@ exports.updateHotel = async (req, res, next) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const fields = ['name', 'description', 'star_rating', 'hotel_type', 'address', 'city', 'state', 'country', 'phone', 'website', 'check_in_time', 'check_out_time', 'lat', 'lng'];
+    const fields = ['name', 'description', 'star_rating', 'hotel_type', 'address', 'city', 'state', 'country', 'phone', 'website', 'check_in_time', 'check_out_time', 'lat', 'lng', 'maps_url'];
     const updates = [];
     const values = [];
     let idx = 1;

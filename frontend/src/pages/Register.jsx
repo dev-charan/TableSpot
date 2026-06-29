@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { UtensilsCrossed, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -7,8 +7,10 @@ import { useAuth } from '../context/AuthContext';
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultRole = searchParams.get('role') || 'user';
 
-  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'user' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: defaultRole });
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -19,13 +21,16 @@ export default function Register() {
     try {
       const user = await register(form);
       toast.success(`Welcome, ${user.name.split(' ')[0]}!`);
-      if (user.role === 'restaurant_owner') navigate('/dashboard/register-restaurant');
-      else if (user.role === 'hotel_owner') navigate('/hotel-dashboard/register');
-      else navigate('/');
+      const dest = user.role === 'restaurant_owner'
+        ? '/dashboard/register-restaurant'
+        : user.role === 'hotel_owner'
+        ? '/hotel-dashboard/register'
+        : '/';
+      window.location.replace(dest);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const f = (field) => (e) => setForm({ ...form, [field]: e.target.value });

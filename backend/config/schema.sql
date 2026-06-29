@@ -202,3 +202,28 @@ CREATE INDEX IF NOT EXISTS idx_room_types_hotel ON room_types(hotel_id);
 -- ============ REVIEW VISIBILITY ============
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS is_visible BOOLEAN DEFAULT true;
 ALTER TABLE hotel_reviews ADD COLUMN IF NOT EXISTS is_visible BOOLEAN DEFAULT true;
+
+-- ============ MAPS URL ============
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS maps_url VARCHAR(500);
+ALTER TABLE hotels ADD COLUMN IF NOT EXISTS maps_url VARCHAR(500);
+
+-- ============ ALLOW SAME EMAIL ACROSS ROLES ============
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'users_email_key' AND table_name = 'users'
+  ) THEN
+    ALTER TABLE users DROP CONSTRAINT users_email_key;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'users_email_role_key' AND table_name = 'users'
+  ) THEN
+    ALTER TABLE users ADD CONSTRAINT users_email_role_key UNIQUE (email, role);
+  END IF;
+END $$;
