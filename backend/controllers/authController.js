@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { pool } = require('../config/db');
-const email = require('../utils/email');
+const mailer = require('../utils/email');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -22,8 +22,8 @@ exports.register = async (req, res, next) => {
       [name, email, hash, phone]
     );
 
-    email.welcomeGuest(rows[0].email, rows[0].name);
-    email.adminNewUser(rows[0].name, rows[0].email, 'user');
+    mailer.welcomeGuest(rows[0].email, rows[0].name);
+    mailer.adminNewUser(rows[0].name, rows[0].email, 'user');
     res.status(201).json({ token: signToken(rows[0].id), user: rows[0] });
   } catch (err) {
     next(err);
@@ -91,11 +91,11 @@ exports.googleAuth = async (req, res, next) => {
       rows = created.rows;
       // Send welcome email to new Google users
       if (role === 'restaurant_owner' || role === 'hotel_owner') {
-        email.welcomeHost(rows[0].email, rows[0].name, role);
+        mailer.welcomeHost(rows[0].email, rows[0].name, role);
       } else if (role === 'user') {
-        email.welcomeGuest(rows[0].email, rows[0].name);
+        mailer.welcomeGuest(rows[0].email, rows[0].name);
       }
-      email.adminNewUser(rows[0].name, rows[0].email, role);
+      mailer.adminNewUser(rows[0].name, rows[0].email, role);
     }
 
     const { password_hash, ...userData } = rows[0];
