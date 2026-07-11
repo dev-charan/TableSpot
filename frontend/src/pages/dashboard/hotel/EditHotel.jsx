@@ -115,8 +115,9 @@ export default function EditHotel() {
     <div className="p-8 text-center text-white/40">No hotel found. Register one first.</div>
   );
 
-  const currentCover = hotel.cover_image ? `${BASE}${hotel.cover_image}` : null;
-  const currentGallery = hotel.images?.map((img) => `${BASE}${img}`) || [];
+  const toUrl = (img) => img?.startsWith('http') ? img : `${BASE}${img}`;
+  const currentCover = hotel.cover_image ? toUrl(hotel.cover_image) : null;
+  const currentGallery = hotel.images?.map(toUrl) || [];
 
   return (
     <div className="p-4 md:p-8 max-w-3xl space-y-6 animate-fade-in">

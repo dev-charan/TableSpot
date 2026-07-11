@@ -105,7 +105,7 @@ export default function Profile() {
 
   const roleCfg = roleLabel[user?.role] || roleLabel.user;
   const RoleIcon = roleCfg.icon;
-  const avatarSrc = avatarPreview || (user?.avatar ? `${SERVER_URL}${user.avatar}` : null);
+  const avatarSrc = avatarPreview || (user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${SERVER_URL}${user.avatar}`) : null);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6 animate-fade-in">

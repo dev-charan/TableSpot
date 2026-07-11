@@ -107,8 +107,9 @@ export default function EditRestaurant() {
   );
 
   const hours = (() => { try { return JSON.parse(form.opening_hours); } catch { return { open: '11:00', close: '23:00' }; } })();
-  const currentCover = restaurant.cover_image ? `${BASE}${restaurant.cover_image}` : null;
-  const currentGallery = restaurant.images?.map((img) => `${BASE}${img}`) || [];
+  const toUrl = (img) => img?.startsWith('http') ? img : `${BASE}${img}`;
+  const currentCover = restaurant.cover_image ? toUrl(restaurant.cover_image) : null;
+  const currentGallery = restaurant.images?.map(toUrl) || [];
 
   return (
     <div className="p-4 md:p-8 max-w-3xl space-y-6 animate-fade-in">
