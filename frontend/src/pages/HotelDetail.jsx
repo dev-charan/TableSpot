@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import DateRangePicker from '../components/hotel/DateRangePicker';
 import { usePaymentSettings } from '../hooks/usePaymentSettings';
 import { initiatePayment } from '../utils/razorpay';
+import SEO from '../components/SEO';
 
 const amenityIcons = {
   WiFi: Wifi, Parking: Car, Pool: Waves, Gym: Dumbbell, Restaurant: UtensilsCrossed, Spa: Sparkles,
@@ -168,8 +169,49 @@ export default function HotelDetail() {
 
   const tabs = ['overview', 'rooms', 'reviews'];
 
+  const hotelSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'LodgingBusiness',
+    name: hotel.name,
+    description: hotel.description,
+    image: hotel.cover_image,
+    starRating: hotel.star_rating ? { '@type': 'Rating', ratingValue: hotel.star_rating } : undefined,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: hotel.address,
+      addressLocality: hotel.city,
+      addressRegion: hotel.state,
+      addressCountry: hotel.country || 'IN',
+    },
+    geo: hotel.lat && hotel.lng ? { '@type': 'GeoCoordinates', latitude: hotel.lat, longitude: hotel.lng } : undefined,
+    telephone: hotel.phone,
+    url: hotel.website,
+    checkinTime: hotel.check_in_time,
+    checkoutTime: hotel.check_out_time,
+    aggregateRating: hotel.avg_rating > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: hotel.avg_rating,
+      reviewCount: hotel.total_reviews || 1,
+      bestRating: 5,
+    } : undefined,
+    amenityFeature: (hotel.amenities || []).map((a) => ({ '@type': 'LocationFeatureSpecification', name: a, value: true })),
+    potentialAction: {
+      '@type': 'ReserveAction',
+      target: `https://www.smartaithi.com/hotels/${hotel.id}`,
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <SEO
+        title={`${hotel.name} — Book Rooms in ${hotel.city} | ${hotel.star_rating}★ Hotel`}
+        description={`Book rooms at ${hotel.name} in ${hotel.city}. ${hotel.star_rating}-star hotel. Check-in ${hotel.check_in_time}, Check-out ${hotel.check_out_time}. ${hotel.description?.slice(0, 80) || ''} Book online on SmartAtithi.`}
+        keywords={`${hotel.name}, hotel booking ${hotel.city}, room booking ${hotel.city}, ${hotel.star_rating} star hotel ${hotel.city}, ${hotel.hotel_type} ${hotel.city}, SmartAtithi hotel`}
+        image={hotel.cover_image}
+        path={`/hotels/${hotel.id}`}
+        type="hotel"
+        schema={hotelSchema}
+      />
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/60 hover:text-white mb-6 transition-colors">
         <ChevronLeft size={18} /> Back
       </button>

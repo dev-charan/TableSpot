@@ -6,6 +6,7 @@ import api from '../api/axios';
 import HotelCard from '../components/hotel/HotelCard';
 import WeatherBanner from '../components/WeatherBanner';
 import { useWeather } from '../hooks/useWeather';
+import SEO from '../components/SEO';
 
 const hotelTypes = ['All', 'hotel', 'resort', 'hostel', 'apartment', 'villa', 'boutique'];
 const starFilters = [0, 1, 2, 3, 4, 5];
@@ -39,6 +40,12 @@ export default function Hotels() {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title={city ? `Hotels in ${city} — Book Rooms Online` : 'Hotel Booking in Malegaon, Shirdi, Mumbai, Nashik'}
+        description={`Find and book hotels in ${city || 'Malegaon, Shirdi, Mumbai, Nashik and across India'}. Best room rates, instant confirmation. Book on SmartAtithi.`}
+        keywords={`hotel booking ${city || 'India'}, room booking ${city || 'India'}, hotels near me, budget hotel ${city || ''}, luxury hotel ${city || ''}, SmartAtithi hotels`}
+        path="/hotels"
+      />
       <section className="relative overflow-hidden py-20 px-4">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-3xl mx-auto text-center animate-slide-up">

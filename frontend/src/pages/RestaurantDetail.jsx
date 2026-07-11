@@ -13,6 +13,7 @@ import LiveSeats from '../components/LiveSeats';
 import { useAuth } from '../context/AuthContext';
 import { usePaymentSettings } from '../hooks/usePaymentSettings';
 import { initiatePayment } from '../utils/razorpay';
+import SEO from '../components/SEO';
 
 const priceLabel = (p) => ['', '₹ Budget', '₹₹ Mid-range', '₹₹₹ Premium', '₹₹₹₹ Fine Dining'][p] || '';
 
@@ -170,8 +171,49 @@ export default function RestaurantDetail() {
 
   const tabs = ['overview', 'menu', 'reviews'];
 
+  const restaurantSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Restaurant',
+    name: restaurant.name,
+    description: restaurant.description,
+    image: restaurant.cover_image,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: restaurant.address,
+      addressLocality: restaurant.city,
+      addressRegion: restaurant.state,
+      addressCountry: restaurant.country || 'IN',
+    },
+    geo: restaurant.lat && restaurant.lng ? { '@type': 'GeoCoordinates', latitude: restaurant.lat, longitude: restaurant.lng } : undefined,
+    telephone: restaurant.phone,
+    url: restaurant.website,
+    servesCuisine: restaurant.cuisine_type,
+    aggregateRating: restaurant.avg_rating > 0 ? {
+      '@type': 'AggregateRating',
+      ratingValue: restaurant.avg_rating,
+      reviewCount: restaurant.total_reviews || 1,
+      bestRating: 5,
+    } : undefined,
+    priceRange: ['', '₹', '₹₹', '₹₹₹', '₹₹₹₹'][restaurant.price_range] || '₹₹',
+    hasMap: restaurant.maps_url,
+    reservations: 'Required',
+    potentialAction: {
+      '@type': 'ReserveAction',
+      target: `https://www.smartaithi.com/restaurants/${restaurant.id}`,
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <SEO
+        title={`${restaurant.name} — Book a Table in ${restaurant.city}`}
+        description={`Book a table at ${restaurant.name} in ${restaurant.city}. ${restaurant.cuisine_type} cuisine. ${restaurant.description?.slice(0, 100) || ''} Online reservation on SmartAtithi.`}
+        keywords={`${restaurant.name}, restaurant booking ${restaurant.city}, table reservation ${restaurant.city}, ${restaurant.cuisine_type} restaurant ${restaurant.city}, book restaurant ${restaurant.city}`}
+        image={restaurant.cover_image}
+        path={`/restaurants/${restaurant.id}`}
+        type="restaurant.restaurant"
+        schema={restaurantSchema}
+      />
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/60 hover:text-white mb-6 transition-colors">
         <ChevronLeft size={18} /> Back
       </button>

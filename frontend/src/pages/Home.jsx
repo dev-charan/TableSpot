@@ -8,6 +8,7 @@ import WeatherBanner from '../components/WeatherBanner';
 import { useWeather } from '../hooks/useWeather';
 import { useAuth } from '../context/AuthContext';
 import { APP_NAME } from '../config';
+import SEO from '../components/SEO';
 
 const cuisines = ['All', 'Indian', 'Chinese', 'Italian', 'Continental', 'Japanese', 'Mexican', 'Thai', 'Mediterranean'];
 
@@ -31,8 +32,43 @@ export default function Home() {
     keepPreviousData: true,
   });
 
+  const homeSchema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': 'https://www.smartaithi.com/#website',
+        url: 'https://www.smartaithi.com',
+        name: 'SmartAtithi',
+        description: 'Restaurant and hotel booking platform in India',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { '@type': 'EntryPoint', urlTemplate: 'https://www.smartaithi.com/?search={search_term_string}' },
+          'query-input': 'required name=search_term_string',
+        },
+      },
+      {
+        '@type': 'Organization',
+        '@id': 'https://www.smartaithi.com/#organization',
+        name: 'SmartAtithi',
+        url: 'https://www.smartaithi.com',
+        logo: 'https://www.smartaithi.com/logo.png',
+        description: 'Online restaurant and hotel booking platform serving Malegaon, Shirdi, Mumbai, Nashik and across India',
+        areaServed: ['Malegaon', 'Shirdi', 'Mumbai', 'Nashik', 'India'],
+        serviceType: ['Restaurant Booking', 'Hotel Booking', 'Table Reservation', 'Room Booking'],
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen">
+      <SEO
+        title="Restaurant & Hotel Booking in Malegaon, Shirdi, Mumbai, Nashik"
+        description="Book restaurants and hotels online in Malegaon, Shirdi, Mumbai, Nashik and across India. Instant table reservations, room bookings with SmartAtithi."
+        keywords="hotel booking Malegaon, restaurant booking Shirdi, table reservation Mumbai, room booking Nashik, SmartAtithi, hotel booking India, restaurant reservation online, smart aithi booking"
+        path="/"
+        schema={homeSchema}
+      />
       <section className="relative overflow-hidden py-20 px-4">
         <div className="absolute inset-0 bg-gradient-to-b from-brand-500/10 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-3xl mx-auto text-center animate-slide-up">
