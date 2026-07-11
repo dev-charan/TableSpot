@@ -11,6 +11,8 @@ import api from '../api/axios';
 import MapPicker from '../components/MapPicker';
 import LiveSeats from '../components/LiveSeats';
 import { useAuth } from '../context/AuthContext';
+import { usePaymentSettings } from '../hooks/usePaymentSettings';
+import { initiatePayment } from '../utils/razorpay';
 
 const priceLabel = (p) => ['', '₹ Budget', '₹₹ Mid-range', '₹₹₹ Premium', '₹₹₹₹ Fine Dining'][p] || '';
 
@@ -39,6 +41,9 @@ export default function RestaurantDetail() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedCategory, setExpandedCategory] = useState(null);
+  const [paying, setPaying] = useState(false);
+
+  const { data: paySettings } = usePaymentSettings();
 
   const { data: restaurant, isLoading } = useQuery({
     queryKey: ['restaurant', id],
@@ -71,11 +76,6 @@ export default function RestaurantDetail() {
 
   const bookMutation = useMutation({
     mutationFn: (data) => api.post('/bookings', data),
-    onSuccess: (res) => {
-      qc.invalidateQueries(['my-bookings']);
-      qc.invalidateQueries(['slots']);
-      navigate('/booking/confirmation', { state: { type: 'restaurant', booking: res.data, restaurant } });
-    },
     onError: (err) => toast.error(err.response?.data?.message || 'Booking failed'),
   });
 
@@ -105,11 +105,45 @@ export default function RestaurantDetail() {
     setBookingForm((f) => ({ ...f, time_slot: slot.slot, table_id: slot.tables[0]?.id || '' }));
   }, []);
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!isLoggedIn) return navigate('/login', { state: { from: `/restaurant/${id}` } });
     if (!bookingForm.time_slot) return toast.error('Please select a time slot');
     if (!bookingForm.table_id) return toast.error('No table available for selected time');
-    bookMutation.mutate({ ...bookingForm, restaurant_id: id });
+
+    let paymentId = null;
+    let breakdown = null;
+
+    if (paySettings?.is_payment_enabled && parseFloat(paySettings.restaurant_fee_per_person || 0) > 0) {
+      setPaying(true);
+      try {
+        const result = await initiatePayment({
+          booking_type: 'restaurant',
+          booking_amount: 0,
+          party_size: bookingForm.party_size,
+          entity_id: id,
+          user,
+        });
+        if (result) {
+          paymentId = result.payment_id;
+          breakdown = result.breakdown;
+        }
+      } catch (err) {
+        setPaying(false);
+        if (err.message !== 'Payment cancelled') toast.error(err.message || 'Payment failed');
+        return;
+      }
+      setPaying(false);
+    }
+
+    bookMutation.mutate({ ...bookingForm, restaurant_id: id, payment_id: paymentId }, {
+      onSuccess: (res) => {
+        qc.invalidateQueries(['my-bookings']);
+        qc.invalidateQueries(['slots']);
+        navigate('/booking/confirmation', {
+          state: { type: 'restaurant', booking: res.data, restaurant, breakdown },
+        });
+      },
+    });
   };
 
   const getETA = useCallback(async () => {
@@ -441,10 +475,10 @@ export default function RestaurantDetail() {
 
               <button
                 onClick={handleBook}
-                disabled={bookMutation.isPending}
+                disabled={bookMutation.isPending || paying}
                 className="btn-primary w-full"
               >
-                {bookMutation.isPending ? 'Booking...' : 'Confirm Reservation'}
+                {paying ? 'Processing Payment...' : bookMutation.isPending ? 'Booking...' : 'Confirm Reservation'}
               </button>
 
               {!isLoggedIn && (

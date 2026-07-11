@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, MapPin, UtensilsCrossed, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { Search, MapPin, UtensilsCrossed, SlidersHorizontal, ChevronDown, Building2 } from 'lucide-react';
 import api from '../api/axios';
 import RestaurantCard from '../components/RestaurantCard';
 import WeatherBanner from '../components/WeatherBanner';
 import { useWeather } from '../hooks/useWeather';
+import { useAuth } from '../context/AuthContext';
+import { APP_NAME } from '../config';
 
 const cuisines = ['All', 'Indian', 'Chinese', 'Italian', 'Continental', 'Japanese', 'Mexican', 'Thai', 'Mediterranean'];
 
@@ -14,6 +17,7 @@ export default function Home() {
   const [cuisine, setCuisine] = useState('');
   const [page, setPage] = useState(1);
   const weather = useWeather();
+  const { isLoggedIn } = useAuth();
 
   const { data: cities = [] } = useQuery({
     queryKey: ['cities'],
@@ -124,6 +128,29 @@ export default function Home() {
               </div>
             )}
           </>
+        )}
+        {/* Become a Host CTA */}
+        {!isLoggedIn && (
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-500/20 via-blue-500/10 to-brand-500/20 border border-white/10 p-8 md:p-12 text-center">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-dark-900/50 pointer-events-none" />
+            <div className="relative z-10">
+              <div className="flex justify-center gap-4 mb-5">
+                <div className="w-12 h-12 rounded-2xl bg-brand-500/20 flex items-center justify-center">
+                  <UtensilsCrossed size={22} className="text-brand-400" />
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center">
+                  <Building2 size={22} className="text-blue-400" />
+                </div>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Own a restaurant or hotel?</h2>
+              <p className="text-white/50 mb-7 max-w-md mx-auto">
+                Join thousands of hosts on {APP_NAME}. List your property, manage bookings, and grow your business.
+              </p>
+              <Link to="/become-host" className="btn-primary px-8 py-3 text-base">
+                Become a Host
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </div>

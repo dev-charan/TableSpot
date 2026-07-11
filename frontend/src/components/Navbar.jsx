@@ -2,6 +2,16 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { UtensilsCrossed, Building2, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { APP_NAME } from '../config';
+
+const splitAppName = (name) => {
+  const match = name.slice(1).match(/[A-Z]/);
+  if (!match) return [name, ''];
+  const idx = match.index + 1;
+  return [name.slice(0, idx), name.slice(idx)];
+};
+
+const [namePart1, namePart2] = splitAppName(APP_NAME);
 
 export default function Navbar() {
   const { user, logout, isLoggedIn } = useAuth();
@@ -27,7 +37,7 @@ export default function Navbar() {
               <UtensilsCrossed size={18} className="text-white" />
             </div>
             <span className="font-bold text-lg tracking-tight">
-              Table<span className="text-brand-500">Spot</span>
+              {namePart1}<span className="text-brand-500">{namePart2}</span>
             </span>
           </Link>
 
@@ -95,6 +105,7 @@ export default function Navbar() {
               </div>
             ) : (
               <>
+                <Link to="/become-host" className="btn-ghost text-sm py-2 border border-white/20 hover:border-brand-500/50">Become a Host</Link>
                 <Link to="/login" className="btn-ghost text-sm py-2">Sign In</Link>
                 <Link to="/register" className="btn-primary text-sm py-2">Get Started</Link>
               </>
@@ -126,9 +137,12 @@ export default function Navbar() {
               <button onClick={handleLogout} className="block text-sm py-2 text-red-400 w-full text-left">Sign Out</button>
             </>
           ) : (
-            <div className="flex gap-3 pt-2">
-              <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-ghost flex-1 text-center text-sm">Sign In</Link>
-              <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-primary flex-1 text-center text-sm">Get Started</Link>
+            <div className="flex flex-col gap-2 pt-2">
+              <Link to="/become-host" onClick={() => setMenuOpen(false)} className="btn-ghost text-center text-sm border border-white/20">Become a Host</Link>
+              <div className="flex gap-2">
+                <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-ghost flex-1 text-center text-sm">Sign In</Link>
+                <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-primary flex-1 text-center text-sm">Get Started</Link>
+              </div>
             </div>
           )}
         </div>

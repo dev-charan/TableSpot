@@ -1,4 +1,6 @@
 const { pool } = require('../config/db');
+const email = require('../utils/email');
+const { format } = require('date-fns');
 
 exports.createHotelBooking = async (req, res, next) => {
   const client = await pool.connect();
@@ -62,13 +64,34 @@ exports.createHotelBooking = async (req, res, next) => {
     await client.query('COMMIT');
 
     req.io?.to(`hotel_${hotel_id}`).emit('hotel_booking_update', {
-      type: 'new_booking',
-      room_type_id,
-      check_in,
-      check_out,
+      type: 'new_booking', room_type_id, check_in, check_out,
     });
 
-    res.status(201).json({ ...rows[0], nights, room_name: roomType.rows[0].name });
+    // Send emails (non-blocking)
+    const booking = rows[0];
+    const ref = booking.id.replace(/-/g, '').slice(0, 8).toUpperCase();
+    const [hotelRow] = (await pool.query(
+      `SELECT h.name, h.maps_url, u.name as owner_name, u.email as owner_email
+       FROM hotels h JOIN users u ON u.id = h.owner_id WHERE h.id = $1`,
+      [hotel_id]
+    )).rows;
+    const [guestRow] = (await pool.query('SELECT name, email FROM users WHERE id = $1', [req.user.id])).rows;
+
+    const fmtDate = (d) => format(new Date(d + 'T12:00:00'), 'EEE, MMM d yyyy');
+    const roomName = roomType.rows[0].name;
+
+    email.bookingConfirmedHotel(guestRow.email, {
+      hotelName: hotelRow.name, checkIn: fmtDate(check_in), checkOut: fmtDate(check_out),
+      nights, guests, rooms, roomName, totalPrice: total_price, ref, mapsUrl: hotelRow.maps_url,
+    });
+    email.ownerNewHotelBooking(hotelRow.owner_email, {
+      ownerName: hotelRow.owner_name, hotelName: hotelRow.name,
+      guestName: guestRow.name, guestEmail: guestRow.email,
+      checkIn: fmtDate(check_in), checkOut: fmtDate(check_out),
+      nights, guests, rooms, roomName, totalPrice: total_price, ref,
+    });
+
+    res.status(201).json({ ...rows[0], nights, room_name: roomName });
   } catch (err) {
     await client.query('ROLLBACK');
     next(err);

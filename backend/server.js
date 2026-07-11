@@ -65,6 +65,7 @@ app.use('/api/rooms', require('./routes/rooms'));
 app.use('/api/hotel-bookings', require('./routes/hotelBookings'));
 app.use('/api/hotel-reviews', require('./routes/hotelReviews'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/payments', require('./routes/payments'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

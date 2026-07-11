@@ -4,8 +4,9 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'restaurant_owner', 'admin')),
+  password_hash VARCHAR(255),
+  google_id VARCHAR(255),
+  role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'restaurant_owner', 'hotel_owner', 'owner', 'admin')),
   phone VARCHAR(20),
   avatar VARCHAR(500),
   no_show_count INTEGER DEFAULT 0,
@@ -110,9 +111,6 @@ CREATE INDEX IF NOT EXISTS idx_menu_items_restaurant ON menu_items(restaurant_id
 
 -- ============ HOTEL MODULE ============
 
-ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-ALTER TABLE users ADD CONSTRAINT users_role_check
-  CHECK (role IN ('user', 'restaurant_owner', 'hotel_owner', 'owner', 'admin'));
 
 CREATE TABLE IF NOT EXISTS hotels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -207,23 +205,71 @@ ALTER TABLE hotel_reviews ADD COLUMN IF NOT EXISTS is_visible BOOLEAN DEFAULT tr
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS maps_url VARCHAR(500);
 ALTER TABLE hotels ADD COLUMN IF NOT EXISTS maps_url VARCHAR(500);
 
--- ============ ALLOW SAME EMAIL ACROSS ROLES ============
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'users_email_key' AND table_name = 'users'
-  ) THEN
-    ALTER TABLE users DROP CONSTRAINT users_email_key;
-  END IF;
-END $$;
+-- ============ PAYMENT MODULE ============
+CREATE TABLE IF NOT EXISTS payment_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  is_payment_enabled BOOLEAN DEFAULT false,
+  hotel_commission_rate DECIMAL(5,2) DEFAULT 0,
+  restaurant_fee_per_person DECIMAL(10,2) DEFAULT 0,
+  gst_rate DECIMAL(5,2) DEFAULT 0,
+  gst_number VARCHAR(50),
+  business_name VARCHAR(200),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+INSERT INTO payment_settings (id) VALUES (1) ON CONFLICT DO NOTHING;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'users_email_role_key' AND table_name = 'users'
-  ) THEN
-    ALTER TABLE users ADD CONSTRAINT users_email_role_key UNIQUE (email, role);
-  END IF;
-END $$;
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  booking_type VARCHAR(20) CHECK (booking_type IN ('restaurant', 'hotel')),
+  razorpay_order_id VARCHAR(200) UNIQUE,
+  razorpay_payment_id VARCHAR(200),
+  razorpay_signature TEXT,
+  booking_amount DECIMAL(10,2) NOT NULL,
+  commission_amount DECIMAL(10,2) DEFAULT 0,
+  gst_amount DECIMAL(10,2) DEFAULT 0,
+  total_amount DECIMAL(10,2) NOT NULL,
+  commission_rate DECIMAL(5,2) DEFAULT 0,
+  gst_rate DECIMAL(5,2) DEFAULT 0,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed', 'refunded')),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_id UUID REFERENCES payments(id);
+ALTER TABLE hotel_bookings ADD COLUMN IF NOT EXISTS payment_id UUID REFERENCES payments(id);
+
+-- Payout scheduling per entity
+ALTER TABLE hotels ADD COLUMN IF NOT EXISTS payout_schedule_days INTEGER DEFAULT 7;
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS payout_schedule_days INTEGER DEFAULT 7;
+
+-- Default payout days in settings
+ALTER TABLE payment_settings ADD COLUMN IF NOT EXISTS default_payout_days INTEGER DEFAULT 7;
+
+-- Track which entity this payment is for
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS entity_id UUID;
+ALTER TABLE payments ADD COLUMN IF NOT EXISTS entity_type VARCHAR(20);
+
+-- Payout ledger
+CREATE TABLE IF NOT EXISTS payouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_id UUID REFERENCES payments(id) ON DELETE SET NULL,
+  owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  owner_name VARCHAR(200),
+  owner_email VARCHAR(255),
+  entity_type VARCHAR(20) CHECK (entity_type IN ('restaurant', 'hotel')),
+  entity_id UUID,
+  entity_name VARCHAR(200),
+  gross_amount DECIMAL(10,2) NOT NULL,
+  commission_amount DECIMAL(10,2) DEFAULT 0,
+  gst_amount DECIMAL(10,2) DEFAULT 0,
+  net_amount DECIMAL(10,2) NOT NULL,
+  due_date DATE NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'due', 'paid', 'failed')),
+  paid_at TIMESTAMP,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payouts_status_due ON payouts(status, due_date);
+CREATE INDEX IF NOT EXISTS idx_payouts_owner ON payouts(owner_id);
+

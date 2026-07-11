@@ -49,7 +49,7 @@ exports.createMenuItem = async (req, res, next) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const image = req.file ? `/uploads/menus/${req.file.filename}` : null;
+    const image = req.file?.location || null;
 
     const { rows } = await pool.query(
       `INSERT INTO menu_items (category_id, restaurant_id, name, description, price, image, is_must_try)
@@ -96,7 +96,7 @@ exports.updateMenuItem = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, description, price, is_available, is_must_try } = req.body;
-    const image = req.file ? `/uploads/menus/${req.file.filename}` : undefined;
+    const image = req.file?.location;
 
     const updates = [];
     const values = [];

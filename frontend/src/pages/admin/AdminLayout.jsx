@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UtensilsCrossed, Building2,
-  CalendarDays, ShieldCheck, LogOut, ChevronRight, Menu, X, Star,
+  CalendarDays, ShieldCheck, LogOut, ChevronRight, Menu, X, Star, Settings, Wallet,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { APP_NAME } from '../../config';
 
 const nav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -13,6 +14,8 @@ const nav = [
   { to: '/admin/hotels', label: 'Hotels', icon: Building2 },
   { to: '/admin/bookings', label: 'Bookings', icon: CalendarDays },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
+  { to: '/admin/payouts', label: 'Payouts', icon: Wallet },
+  { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function AdminLayout() {
@@ -32,7 +35,7 @@ export default function AdminLayout() {
           </div>
           <div>
             <p className="font-bold text-sm">Admin Panel</p>
-            <p className="text-xs text-white/40">TableSpot</p>
+            <p className="text-xs text-white/40">{APP_NAME}</p>
           </div>
         </div>
       </div>

@@ -64,13 +64,8 @@ exports.createRestaurant = async (req, res, next) => {
       lat, lng, phone, website, opening_hours, price_range, osm_id, maps_url,
     } = req.body;
 
-    const cover_image = req.files?.cover_image?.[0]
-      ? `/uploads/restaurants/${req.files.cover_image[0].filename}`
-      : null;
-
-    const images = req.files?.images
-      ? req.files.images.map((f) => `/uploads/restaurants/${f.filename}`)
-      : [];
+    const cover_image = req.files?.cover_image?.[0]?.location || null;
+    const images = req.files?.images?.map((f) => f.location) || [];
 
     const { rows } = await pool.query(
       `INSERT INTO restaurants
@@ -213,12 +208,12 @@ exports.updateRestaurant = async (req, res, next) => {
 
     if (req.files?.cover_image?.[0]) {
       updates.push(`cover_image = $${idx++}`);
-      values.push(`/uploads/restaurants/${req.files.cover_image[0].filename}`);
+      values.push(req.files.cover_image[0].location);
     }
 
     if (req.files?.images?.length) {
       updates.push(`images = $${idx++}`);
-      values.push(req.files.images.map((f) => `/uploads/restaurants/${f.filename}`));
+      values.push(req.files.images.map((f) => f.location));
     }
 
     if (!updates.length) return res.status(400).json({ message: 'Nothing to update' });

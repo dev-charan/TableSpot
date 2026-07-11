@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import BecomeHost from './pages/BecomeHost';
 import RestaurantDetail from './pages/RestaurantDetail';
 import UserDashboard from './pages/UserDashboard';
 import RestaurantDashboard from './pages/dashboard/RestaurantDashboard';
@@ -26,6 +27,8 @@ import AdminRestaurants from './pages/admin/AdminRestaurants';
 import AdminHotels from './pages/admin/AdminHotels';
 import AdminBookings from './pages/admin/AdminBookings';
 import AdminReviews from './pages/admin/AdminReviews';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminPayouts from './pages/admin/AdminPayouts';
 import Profile from './pages/Profile';
 import BookingConfirmation from './pages/BookingConfirmation';
 
@@ -57,6 +60,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/become-host" element={<BecomeHost />} />
         <Route path="/restaurant/:id" element={<RestaurantDetail />} />
 
         <Route path="/hotels" element={<Hotels />} />
@@ -88,6 +92,8 @@ export default function App() {
           <Route path="hotels" element={<AdminHotels />} />
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="reviews" element={<AdminReviews />} />
+          <Route path="payouts" element={<AdminPayouts />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

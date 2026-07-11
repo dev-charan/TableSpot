@@ -12,6 +12,8 @@ import api from '../api/axios';
 import MapPicker from '../components/MapPicker';
 import { useAuth } from '../context/AuthContext';
 import DateRangePicker from '../components/hotel/DateRangePicker';
+import { usePaymentSettings } from '../hooks/usePaymentSettings';
+import { initiatePayment } from '../utils/razorpay';
 
 const amenityIcons = {
   WiFi: Wifi, Parking: Car, Pool: Waves, Gym: Dumbbell, Restaurant: UtensilsCrossed, Spa: Sparkles,
@@ -42,6 +44,9 @@ export default function HotelDetail() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [paying, setPaying] = useState(false);
+
+  const { data: paySettings } = usePaymentSettings();
 
   const nights = differenceInDays(new Date(checkOut), new Date(checkIn));
 
@@ -74,12 +79,6 @@ export default function HotelDetail() {
 
   const bookMutation = useMutation({
     mutationFn: (data) => api.post('/hotel-bookings', data),
-    onSuccess: (res) => {
-      qc.invalidateQueries(['my-hotel-bookings']);
-      qc.invalidateQueries(['room-availability']);
-      const roomType = availability.find((r) => r.id === selectedRoom);
-      navigate('/booking/confirmation', { state: { type: 'hotel', booking: res.data, hotel, roomType } });
-    },
     onError: (err) => toast.error(err.response?.data?.message || 'Booking failed'),
   });
 
@@ -100,11 +99,50 @@ export default function HotelDetail() {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed'),
   });
 
-  const handleBook = () => {
+  const handleBook = async () => {
     if (!isLoggedIn) return navigate('/login', { state: { from: `/hotel/${id}` } });
     if (!selectedRoom) return toast.error('Select a room type');
     if (nights <= 0) return toast.error('Invalid dates');
-    bookMutation.mutate({ hotel_id: id, room_type_id: selectedRoom, check_in: checkIn, check_out: checkOut, guests, rooms });
+
+    const roomData = availability.find((r) => r.id === selectedRoom);
+    const totalStayPrice = parseFloat(roomData?.total_price || 0);
+
+    let paymentId = null;
+    let breakdown = null;
+
+    if (paySettings?.is_payment_enabled && parseFloat(paySettings.hotel_commission_rate || 0) > 0) {
+      setPaying(true);
+      try {
+        const result = await initiatePayment({
+          booking_type: 'hotel',
+          booking_amount: totalStayPrice,
+          entity_id: id,
+          user,
+        });
+        if (result) {
+          paymentId = result.payment_id;
+          breakdown = result.breakdown;
+        }
+      } catch (err) {
+        setPaying(false);
+        if (err.message !== 'Payment cancelled') toast.error(err.message || 'Payment failed');
+        return;
+      }
+      setPaying(false);
+    }
+
+    bookMutation.mutate(
+      { hotel_id: id, room_type_id: selectedRoom, check_in: checkIn, check_out: checkOut, guests, rooms, payment_id: paymentId },
+      {
+        onSuccess: (res) => {
+          qc.invalidateQueries(['my-hotel-bookings']);
+          qc.invalidateQueries(['room-availability']);
+          navigate('/booking/confirmation', {
+            state: { type: 'hotel', booking: res.data, hotel, roomType: roomData, breakdown },
+          });
+        },
+      }
+    );
   };
 
   const getETA = useCallback(async () => {
@@ -409,9 +447,9 @@ export default function HotelDetail() {
                 </button>
               )}
 
-              <button onClick={handleBook} disabled={bookMutation.isPending || !selectedRoom}
+              <button onClick={handleBook} disabled={bookMutation.isPending || paying || !selectedRoom}
                 className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all active:scale-95">
-                {bookMutation.isPending ? 'Booking...' : 'Confirm Booking'}
+                {paying ? 'Processing Payment...' : bookMutation.isPending ? 'Booking...' : 'Confirm Booking'}
               </button>
 
               <div className="text-xs text-center text-white/30 space-y-1">

@@ -1,4 +1,6 @@
 const { pool } = require('../config/db');
+const email = require('../utils/email');
+const { format } = require('date-fns');
 
 exports.createBooking = async (req, res, next) => {
   const client = await pool.connect();
@@ -55,10 +57,27 @@ exports.createBooking = async (req, res, next) => {
     const booking = rows[0];
 
     req.io?.to(`restaurant_${restaurant_id}`).emit('booking_update', {
-      type: 'new_booking',
-      date: booking_date,
-      time_slot,
-      table_id,
+      type: 'new_booking', date: booking_date, time_slot, table_id,
+    });
+
+    // Send emails (non-blocking)
+    const ref = booking.id.replace(/-/g, '').slice(0, 8).toUpperCase();
+    const [restRow] = (await pool.query(
+      `SELECT r.name, r.maps_url, u.name as owner_name, u.email as owner_email
+       FROM restaurants r JOIN users u ON u.id = r.owner_id WHERE r.id = $1`,
+      [restaurant_id]
+    )).rows;
+    const [guestRow] = (await pool.query('SELECT name, email FROM users WHERE id = $1', [req.user.id])).rows;
+
+    const dateStr = format(new Date(booking_date + 'T12:00:00'), 'EEE, MMM d yyyy');
+    email.bookingConfirmedRestaurant(guestRow.email, {
+      restaurantName: restRow.name, date: dateStr,
+      timeSlot: time_slot, partySize: party_size, ref, mapsUrl: restRow.maps_url,
+    });
+    email.ownerNewRestaurantBooking(restRow.owner_email, {
+      ownerName: restRow.owner_name, restaurantName: restRow.name,
+      guestName: guestRow.name, guestEmail: guestRow.email,
+      date: dateStr, timeSlot: time_slot, partySize: party_size, ref,
     });
 
     res.status(201).json(booking);

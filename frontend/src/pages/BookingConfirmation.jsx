@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   CheckCircle, Calendar, Clock, Users, BedDouble,
-  IndianRupee, ArrowRight, Moon, ExternalLink, Printer,
+  IndianRupee, ArrowRight, Moon, ExternalLink, Printer, Receipt,
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 
@@ -36,7 +36,7 @@ export default function BookingConfirmation() {
 
   if (!state) return null;
 
-  const { type, booking, restaurant, hotel, roomType } = state;
+  const { type, booking, restaurant, hotel, roomType, breakdown } = state;
   const isHotel = type === 'hotel';
   const ref = booking.id?.replace(/-/g, '').slice(0, 8).toUpperCase();
   const nights = isHotel
@@ -100,6 +100,47 @@ export default function BookingConfirmation() {
             {' '}— the owner will confirm shortly.
           </p>
         </div>
+
+        {breakdown && breakdown.total > 0 && (
+          <div className="card p-5 space-y-3">
+            <h3 className="font-semibold flex items-center gap-2 text-sm">
+              <Receipt size={15} className="text-green-400" /> Payment Receipt
+            </h3>
+            <div className="space-y-2 text-sm">
+              {isHotel && breakdown.booking_amount > 0 && (
+                <div className="flex justify-between text-white/50">
+                  <span>Room price</span>
+                  <span>₹{breakdown.booking_amount.toLocaleString()}</span>
+                </div>
+              )}
+              {!isHotel && breakdown.restaurant_fee_per_person > 0 && (
+                <div className="flex justify-between text-white/50">
+                  <span>Booking fee</span>
+                  <span>₹{breakdown.commission.toFixed(2)}</span>
+                </div>
+              )}
+              {isHotel && breakdown.commission > 0 && (
+                <div className="flex justify-between text-white/50">
+                  <span>Platform commission ({breakdown.commission_rate}%)</span>
+                  <span>− ₹{breakdown.commission.toFixed(2)}</span>
+                </div>
+              )}
+              {breakdown.gst > 0 && (
+                <div className="flex justify-between text-white/50">
+                  <span>GST ({breakdown.gst_rate}%)</span>
+                  <span>₹{breakdown.gst.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="border-t border-white/10 pt-2 flex justify-between font-semibold text-green-400">
+                <span>Total Paid</span>
+                <span>₹{breakdown.total.toFixed(2)}</span>
+              </div>
+              {breakdown.gst_number && (
+                <p className="text-[11px] text-white/30">GST No: {breakdown.gst_number} · {breakdown.business_name}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {(hotel?.maps_url || restaurant?.maps_url) && (
           <a
