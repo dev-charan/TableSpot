@@ -15,8 +15,8 @@ const staticPages = [
 router.get('/sitemap.xml', async (req, res) => {
   try {
     const [restaurants, hotels] = await Promise.all([
-      pool.query("SELECT id, updated_at FROM restaurants WHERE status = 'active'"),
-      pool.query("SELECT id, updated_at FROM hotels WHERE status = 'active'"),
+      pool.query("SELECT id, created_at FROM restaurants WHERE status = 'active'"),
+      pool.query("SELECT id, created_at FROM hotels WHERE status = 'active'"),
     ]);
 
     const urls = [
@@ -24,10 +24,10 @@ router.get('/sitemap.xml', async (req, res) => {
         (p) => `<url><loc>${DOMAIN}${p.url}</loc><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority></url>`
       ),
       ...restaurants.rows.map(
-        (r) => `<url><loc>${DOMAIN}/restaurants/${r.id}</loc><lastmod>${new Date(r.updated_at || Date.now()).toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`
+        (r) => `<url><loc>${DOMAIN}/restaurants/${r.id}</loc><lastmod>${new Date(r.created_at || Date.now()).toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`
       ),
       ...hotels.rows.map(
-        (h) => `<url><loc>${DOMAIN}/hotels/${h.id}</loc><lastmod>${new Date(h.updated_at || Date.now()).toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`
+        (h) => `<url><loc>${DOMAIN}/hotels/${h.id}</loc><lastmod>${new Date(h.created_at || Date.now()).toISOString().split('T')[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`
       ),
     ];
 
