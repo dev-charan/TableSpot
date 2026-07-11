@@ -1,3 +1,7 @@
 {
+  "redirects": [
+    { "source": "/sitemap.xml", "destination": "https://api.smartaithi.com/sitemap.xml", "permanent": false },
+    { "source": "/robots.txt", "destination": "https://api.smartaithi.com/robots.txt", "permanent": false }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
