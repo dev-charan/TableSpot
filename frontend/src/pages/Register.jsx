@@ -6,15 +6,29 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { APP_NAME } from '../config';
 
+function validate(form) {
+  const errors = {};
+  if (!form.name.trim()) errors.name = 'Full name is required';
+  if (!form.email.trim()) errors.email = 'Email is required';
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = 'Enter a valid email address';
+  if (form.phone && !/^\+?[\d\s\-().]{7,20}$/.test(form.phone)) errors.phone = 'Enter a valid phone number';
+  if (!form.password) errors.password = 'Password is required';
+  else if (form.password.length < 6) errors.password = 'Password must be at least 6 characters';
+  return errors;
+}
+
 export default function Register() {
   const { register, googleLogin } = useAuth();
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' });
+  const [errors, setErrors] = useState({});
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password.length < 6) return toast.error('Password must be at least 6 characters');
+    const errs = validate(form);
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+    setErrors({});
     setLoading(true);
     try {
       const user = await register({ ...form, role: 'user' });
@@ -36,7 +50,10 @@ export default function Register() {
     }
   };
 
-  const f = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+  const f = (field) => (e) => {
+    setForm({ ...form, [field]: e.target.value });
+    if (errors[field]) setErrors({ ...errors, [field]: undefined });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-20">
@@ -73,24 +90,43 @@ export default function Register() {
               <label className="block text-sm font-medium mb-2 text-white/70">Full Name</label>
               <div className="relative">
                 <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-                <input value={form.name} onChange={f('name')} className="input pl-10" placeholder="John Doe" required />
+                <input
+                  value={form.name}
+                  onChange={f('name')}
+                  className={`input pl-10 ${errors.name ? 'border-red-500' : ''}`}
+                  placeholder="John Doe"
+                />
               </div>
+              {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2 text-white/70">Email</label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-                <input type="email" value={form.email} onChange={f('email')} className="input pl-10" placeholder="you@example.com" required />
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={f('email')}
+                  className={`input pl-10 ${errors.email ? 'border-red-500' : ''}`}
+                  placeholder="you@example.com"
+                />
               </div>
+              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-2 text-white/70">Phone <span className="text-white/30 font-normal">(optional)</span></label>
               <div className="relative">
                 <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-                <input value={form.phone} onChange={f('phone')} className="input pl-10" placeholder="+91 9876543210" />
+                <input
+                  value={form.phone}
+                  onChange={f('phone')}
+                  className={`input pl-10 ${errors.phone ? 'border-red-500' : ''}`}
+                  placeholder="+91 9876543210"
+                />
               </div>
+              {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
             </div>
 
             <div>
@@ -101,15 +137,15 @@ export default function Register() {
                   type={showPwd ? 'text' : 'password'}
                   value={form.password}
                   onChange={f('password')}
-                  className="input pl-10 pr-10"
+                  className={`input pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
                   placeholder="Min 6 characters"
-                  required
                 />
                 <button type="button" onClick={() => setShowPwd(!showPwd)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70">
                   {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full">
