@@ -111,7 +111,7 @@ export default function HotelDetail() {
     let paymentId = null;
     let breakdown = null;
 
-    if (paySettings?.is_payment_enabled && parseFloat(paySettings.hotel_commission_rate || 0) > 0) {
+    if (paySettings?.is_payment_enabled) {
       setPaying(true);
       try {
         const result = await initiatePayment({
@@ -352,8 +352,11 @@ export default function HotelDetail() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="font-bold text-lg">₹{Math.round(room.price_per_night).toLocaleString()}<span className="text-xs text-white/40 font-normal">/night</span></p>
+                            <p className="text-[11px] text-white/30">+ taxes</p>
                             {nights > 0 && (
-                              <p className="text-xs text-blue-400 font-medium">₹{Math.round(room.total_price).toLocaleString()} total</p>
+                              <p className="text-xs text-blue-400 font-medium">
+                                ₹{Math.round(room.total_price).toLocaleString()} + taxes
+                              </p>
                             )}
                           </div>
                         </div>
@@ -472,15 +475,33 @@ export default function HotelDetail() {
                 <p className="text-xs text-center text-blue-400 font-medium">{nights} night{nights > 1 ? 's' : ''}</p>
               )}
 
-              {selectedRoom && availability.find((r) => r.id === selectedRoom) && (
-                <div className="glass rounded-xl p-3 border border-blue-500/30">
-                  <p className="text-xs text-white/50">Selected</p>
-                  <p className="font-medium text-sm">{availability.find((r) => r.id === selectedRoom)?.name}</p>
-                  <p className="text-blue-400 font-bold">
-                    ₹{Math.round(availability.find((r) => r.id === selectedRoom)?.total_price || 0).toLocaleString()} total
-                  </p>
-                </div>
-              )}
+              {selectedRoom && availability.find((r) => r.id === selectedRoom) && (() => {
+                const sr = availability.find((r) => r.id === selectedRoom);
+                return (
+                  <div className="glass rounded-xl p-3 border border-blue-500/30 space-y-2">
+                    <div>
+                      <p className="text-xs text-white/50">Selected</p>
+                      <p className="font-medium text-sm">{sr.name}</p>
+                    </div>
+                    <div className="space-y-1 text-xs border-t border-white/10 pt-2">
+                      <div className="flex justify-between text-white/60">
+                        <span>Room charges ({nights} night{nights !== 1 ? 's' : ''})</span>
+                        <span>₹{Math.round(sr.total_price).toLocaleString()}</span>
+                      </div>
+                      {sr.room_gst_rate > 0 && (
+                        <div className="flex justify-between text-white/60">
+                          <span>GST ({sr.room_gst_rate}%)</span>
+                          <span>₹{Math.round(sr.room_gst_amount).toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-semibold text-blue-400 border-t border-white/10 pt-1">
+                        <span>Total payable</span>
+                        <span>₹{Math.round(sr.total_price_with_gst ?? sr.total_price).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {!selectedRoom && nights > 0 && (
                 <button onClick={() => setActiveTab('rooms')}

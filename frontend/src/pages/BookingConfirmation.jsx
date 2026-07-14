@@ -82,7 +82,7 @@ export default function BookingConfirmation() {
               <Row icon={Calendar} label="Check-out" value={format(toDate(booking.check_out), 'EEE, MMM d, yyyy')} />
               <Row icon={Moon} label="Duration" value={`${nights} night${nights !== 1 ? 's' : ''}`} />
               <Row icon={Users} label="Guests" value={`${booking.guests} guest${booking.guests > 1 ? 's' : ''} · ${booking.rooms} room${booking.rooms > 1 ? 's' : ''}`} />
-              <Row icon={IndianRupee} label="Total Amount" value={`₹${Math.round(booking.total_price).toLocaleString()}`} highlight />
+              <Row icon={IndianRupee} label="Total Amount" value={`₹${Math.round(breakdown?.total ?? booking.total_price).toLocaleString()}`} highlight />
             </div>
           ) : (
             <div className="space-y-3">
@@ -107,29 +107,46 @@ export default function BookingConfirmation() {
               <Receipt size={15} className="text-green-400" /> Payment Receipt
             </h3>
             <div className="space-y-2 text-sm">
-              {isHotel && breakdown.booking_amount > 0 && (
-                <div className="flex justify-between text-white/50">
-                  <span>Room price</span>
-                  <span>₹{breakdown.booking_amount.toLocaleString()}</span>
-                </div>
-              )}
-              {!isHotel && breakdown.restaurant_fee_per_person > 0 && (
-                <div className="flex justify-between text-white/50">
-                  <span>Booking fee</span>
-                  <span>₹{breakdown.commission.toFixed(2)}</span>
-                </div>
-              )}
-              {isHotel && breakdown.commission > 0 && (
-                <div className="flex justify-between text-white/50">
-                  <span>Platform commission ({breakdown.commission_rate}%)</span>
-                  <span>− ₹{breakdown.commission.toFixed(2)}</span>
-                </div>
-              )}
-              {breakdown.gst > 0 && (
-                <div className="flex justify-between text-white/50">
-                  <span>GST ({breakdown.gst_rate}%)</span>
-                  <span>₹{breakdown.gst.toFixed(2)}</span>
-                </div>
+              {isHotel ? (
+                <>
+                  {breakdown.booking_amount > 0 && (
+                    <div className="flex justify-between text-white/50">
+                      <span>Room charges</span>
+                      <span>₹{breakdown.booking_amount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {breakdown.room_gst_amount > 0 && (
+                    <>
+                      <div className="flex justify-between text-white/50">
+                        <span>Taxes (GST {breakdown.room_gst_rate}%)</span>
+                        <span>₹{breakdown.room_gst_amount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-white/30 text-xs pl-3">
+                        <span>CGST {(breakdown.room_gst_rate / 2).toFixed(1)}%</span>
+                        <span>₹{(breakdown.room_gst_amount / 2).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-white/30 text-xs pl-3">
+                        <span>SGST {(breakdown.room_gst_rate / 2).toFixed(1)}%</span>
+                        <span>₹{(breakdown.room_gst_amount / 2).toFixed(2)}</span>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {breakdown.restaurant_fee_per_person > 0 && (
+                    <div className="flex justify-between text-white/50">
+                      <span>Booking fee</span>
+                      <span>₹{breakdown.commission.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {breakdown.gst > 0 && (
+                    <div className="flex justify-between text-white/50">
+                      <span>GST ({breakdown.gst_rate}%)</span>
+                      <span>₹{breakdown.gst.toFixed(2)}</span>
+                    </div>
+                  )}
+                </>
               )}
               <div className="border-t border-white/10 pt-2 flex justify-between font-semibold text-green-400">
                 <span>Total Paid</span>

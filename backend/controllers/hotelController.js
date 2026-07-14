@@ -235,15 +235,30 @@ exports.getHotelStats = async (req, res, next) => {
 
     const stats = await pool.query(
       `SELECT
-        COUNT(*) FILTER (WHERE status = 'confirmed') as total_confirmed,
-        COUNT(*) FILTER (WHERE status = 'cancelled') as total_cancelled,
-        COUNT(*) FILTER (WHERE check_in >= CURRENT_DATE AND status IN ('confirmed','pending')) as upcoming,
-        COUNT(*) FILTER (WHERE check_in = CURRENT_DATE AND status IN ('confirmed','pending')) as arriving_today,
-        COUNT(*) FILTER (WHERE check_out = CURRENT_DATE AND status = 'confirmed') as departing_today,
-        COUNT(*) FILTER (WHERE status = 'no_show') as no_shows,
-        COALESCE(SUM(total_price) FILTER (WHERE status IN ('confirmed','completed')), 0) as total_revenue,
-        COALESCE(SUM(total_price) FILTER (WHERE status IN ('confirmed','completed') AND created_at >= DATE_TRUNC('month', CURRENT_DATE)), 0) as revenue_this_month
-       FROM hotel_bookings WHERE hotel_id = $1`,
+        COUNT(hb.id) FILTER (WHERE hb.status = 'confirmed') as total_confirmed,
+        COUNT(hb.id) FILTER (WHERE hb.status = 'cancelled') as total_cancelled,
+        COUNT(hb.id) FILTER (WHERE hb.check_in >= CURRENT_DATE AND hb.status IN ('confirmed','pending')) as upcoming,
+        COUNT(hb.id) FILTER (WHERE hb.check_in = CURRENT_DATE AND hb.status IN ('confirmed','pending')) as arriving_today,
+        COUNT(hb.id) FILTER (WHERE hb.check_out = CURRENT_DATE AND hb.status = 'confirmed') as departing_today,
+        COUNT(hb.id) FILTER (WHERE hb.status = 'no_show') as no_shows,
+        COALESCE(SUM(
+          CASE WHEN hb.status IN ('confirmed','completed')
+            THEN COALESCE(po.gross_amount, hb.total_price) ELSE 0 END
+        ), 0) as total_revenue,
+        COALESCE(SUM(
+          CASE WHEN hb.status IN ('confirmed','completed')
+            AND hb.created_at >= DATE_TRUNC('month', CURRENT_DATE)
+            THEN COALESCE(po.gross_amount, hb.total_price) ELSE 0 END
+        ), 0) as revenue_this_month,
+        COALESCE(SUM(po.net_amount) FILTER (WHERE hb.status IN ('confirmed','completed')), 0) as net_settlement,
+        COALESCE(SUM(po.net_amount) FILTER (
+          WHERE hb.status IN ('confirmed','completed')
+          AND hb.created_at >= DATE_TRUNC('month', CURRENT_DATE)
+        ), 0) as net_settlement_this_month
+       FROM hotel_bookings hb
+       LEFT JOIN payments pay ON pay.id = hb.payment_id
+       LEFT JOIN payouts po   ON po.payment_id = pay.id
+       WHERE hb.hotel_id = $1`,
       [id]
     );
 

@@ -141,10 +141,20 @@ exports.getHotelBookings = async (req, res, next) => {
 
     const { rows } = await pool.query(
       `SELECT hb.*, u.name as user_name, u.email as user_email, u.phone as user_phone,
-        rt.name as room_type_name, rt.price_per_night
+        rt.name as room_type_name, rt.price_per_night,
+        pay.room_gst_rate     as pay_room_gst_rate,
+        pay.room_gst_amount,
+        pay.total_amount      as guest_total,
+        pay.commission_amount,
+        pay.commission_rate   as pay_commission_rate,
+        pay.gst_amount        as commission_gst_amount,
+        pay.gst_rate          as commission_gst_rate,
+        po.net_amount         as settlement_amount
        FROM hotel_bookings hb
        JOIN users u ON u.id = hb.user_id
        LEFT JOIN room_types rt ON rt.id = hb.room_type_id
+       LEFT JOIN payments pay ON pay.id = hb.payment_id
+       LEFT JOIN payouts po   ON po.payment_id = pay.id
        WHERE ${conditions.join(' AND ')}
        ORDER BY hb.check_in DESC`,
       values

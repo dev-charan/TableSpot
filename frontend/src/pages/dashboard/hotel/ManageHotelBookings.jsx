@@ -71,9 +71,14 @@ function BookingCard({ booking, onStatus, isPending }) {
             <div className="text-right">
               <p className="font-bold text-sm flex items-center gap-0.5 justify-end">
                 <IndianRupee size={12} className="text-amber-400" />
-                {Math.round(booking.total_price || 0).toLocaleString()}
+                {Math.round(booking.guest_total || booking.total_price || 0).toLocaleString()}
               </p>
               <p className="text-xs text-white/30">₹{Math.round((booking.price_per_night || 0)).toLocaleString()}/night</p>
+              {booking.settlement_amount != null && (
+                <p className="text-xs text-green-400 font-medium mt-0.5">
+                  Settlement: ₹{Math.round(booking.settlement_amount).toLocaleString()}
+                </p>
+              )}
             </div>
 
             {actions.length > 0 && (
@@ -124,6 +129,43 @@ function BookingCard({ booking, onStatus, isPending }) {
             <div className="glass rounded-xl px-3 py-2 text-xs text-white/60 flex gap-2">
               <span className="text-white/30 shrink-0">Requests:</span>
               <span className="italic">{booking.special_requests}</span>
+            </div>
+          )}
+
+          {/* Settlement breakdown — visible to hotel owner only */}
+          {booking.settlement_amount != null && (
+            <div className="glass rounded-xl p-3 border border-amber-500/20 space-y-1.5 text-xs">
+              <p className="text-amber-400 font-semibold mb-1">Settlement Breakdown</p>
+              <div className="flex justify-between text-white/60">
+                <span>Base booking amount</span>
+                <span>₹{Math.round(booking.total_price || 0).toLocaleString()}</span>
+              </div>
+              {parseFloat(booking.room_gst_amount) > 0 && (
+                <div className="flex justify-between text-white/60">
+                  <span>Room GST ({booking.pay_room_gst_rate}%) collected from guest</span>
+                  <span>₹{parseFloat(booking.room_gst_amount).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-white/80 border-t border-white/10 pt-1">
+                <span>Total paid by guest</span>
+                <span>₹{Math.round(booking.guest_total || booking.total_price || 0).toLocaleString()}</span>
+              </div>
+              {parseFloat(booking.commission_amount) > 0 && (
+                <div className="flex justify-between text-red-400/80">
+                  <span>SmartAtithi commission ({booking.pay_commission_rate}%)</span>
+                  <span>− ₹{parseFloat(booking.commission_amount).toFixed(2)}</span>
+                </div>
+              )}
+              {parseFloat(booking.commission_gst_amount) > 0 && (
+                <div className="flex justify-between text-red-400/60">
+                  <span>GST on commission ({booking.commission_gst_rate}%)</span>
+                  <span>− ₹{parseFloat(booking.commission_gst_amount).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-green-400 font-semibold border-t border-white/10 pt-1">
+                <span>Your settlement</span>
+                <span>₹{parseFloat(booking.settlement_amount).toFixed(2)}</span>
+              </div>
             </div>
           )}
         </div>

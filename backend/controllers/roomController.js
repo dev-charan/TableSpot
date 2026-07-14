@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { calculateHotelPricing, DEFAULTS } = require('../utils/taxConfig');
 
 exports.getRoomTypes = async (req, res, next) => {
   try {
@@ -92,11 +93,15 @@ exports.checkAvailability = async (req, res, next) => {
 
     if (!check_in || !check_out) return res.status(400).json({ message: 'check_in and check_out required' });
 
-    const roomTypes = await pool.query(
-      'SELECT * FROM room_types WHERE hotel_id = $1 AND is_available = true AND max_occupancy >= $2 ORDER BY price_per_night',
-      [hotel_id, guests]
-    );
+    const [roomTypes, settingsRes] = await Promise.all([
+      pool.query(
+        'SELECT * FROM room_types WHERE hotel_id = $1 AND is_available = true AND max_occupancy >= $2 ORDER BY price_per_night',
+        [hotel_id, guests]
+      ),
+      pool.query('SELECT room_gst_rate FROM payment_settings WHERE id = 1'),
+    ]);
 
+    const roomGstRate = parseFloat(settingsRes.rows[0]?.room_gst_rate ?? DEFAULTS.room_gst_rate);
     const nights = Math.ceil((new Date(check_out) - new Date(check_in)) / (1000 * 60 * 60 * 24));
 
     const result = [];
@@ -109,14 +114,19 @@ exports.checkAvailability = async (req, res, next) => {
         [rt.id, check_out, check_in]
       );
 
-      const bookedRooms = parseInt(booked.rows[0].booked_rooms);
+      const bookedRooms    = parseInt(booked.rows[0].booked_rooms);
       const availableRooms = rt.total_rooms - bookedRooms;
+      const baseTotal      = rt.price_per_night * nights * parseInt(rooms);
+      const pricing        = calculateHotelPricing(baseTotal, { room_gst_rate: roomGstRate });
 
       result.push({
         ...rt,
-        available_rooms: availableRooms,
-        is_available_now: availableRooms >= parseInt(rooms),
-        total_price: rt.price_per_night * nights * parseInt(rooms),
+        available_rooms:      availableRooms,
+        is_available_now:     availableRooms >= parseInt(rooms),
+        total_price:          pricing.base_amount,
+        room_gst_rate:        pricing.room_gst_rate,
+        room_gst_amount:      pricing.room_gst_amount,
+        total_price_with_gst: pricing.guest_total,
         nights,
       });
     }

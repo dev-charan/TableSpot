@@ -211,9 +211,11 @@ CREATE TABLE IF NOT EXISTS payment_settings (
   is_payment_enabled BOOLEAN DEFAULT false,
   hotel_commission_rate DECIMAL(5,2) DEFAULT 0,
   restaurant_fee_per_person DECIMAL(10,2) DEFAULT 0,
+  room_gst_rate DECIMAL(5,2) DEFAULT 5,
   gst_rate DECIMAL(5,2) DEFAULT 0,
   gst_number VARCHAR(50),
   business_name VARCHAR(200),
+  default_payout_days INTEGER DEFAULT 7,
   updated_at TIMESTAMP DEFAULT NOW()
 );
 INSERT INTO payment_settings (id) VALUES (1) ON CONFLICT DO NOTHING;
@@ -226,6 +228,8 @@ CREATE TABLE IF NOT EXISTS payments (
   razorpay_payment_id VARCHAR(200),
   razorpay_signature TEXT,
   booking_amount DECIMAL(10,2) NOT NULL,
+  room_gst_rate DECIMAL(5,2) DEFAULT 0,
+  room_gst_amount DECIMAL(10,2) DEFAULT 0,
   commission_amount DECIMAL(10,2) DEFAULT 0,
   gst_amount DECIMAL(10,2) DEFAULT 0,
   total_amount DECIMAL(10,2) NOT NULL,

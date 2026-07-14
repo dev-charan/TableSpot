@@ -2,6 +2,7 @@ const { pool } = require('../config/db');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const email = require('../utils/email');
+const { calculateHotelPricing, DEFAULTS } = require('../utils/taxConfig');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -20,17 +21,20 @@ const getSettings = async (req, res) => {
 const updateSettings = async (req, res) => {
   const {
     is_payment_enabled, hotel_commission_rate, restaurant_fee_per_person,
-    gst_rate, gst_number, business_name, default_payout_days,
+    room_gst_rate, gst_rate, gst_number, business_name, default_payout_days,
   } = req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE payment_settings SET
         is_payment_enabled = $1, hotel_commission_rate = $2, restaurant_fee_per_person = $3,
-        gst_rate = $4, gst_number = $5, business_name = $6, default_payout_days = $7,
-        updated_at = NOW()
+        room_gst_rate = $4, gst_rate = $5, gst_number = $6, business_name = $7,
+        default_payout_days = $8, updated_at = NOW()
        WHERE id = 1 RETURNING *`,
-      [is_payment_enabled, hotel_commission_rate, restaurant_fee_per_person,
-       gst_rate, gst_number, business_name, default_payout_days || 7]
+      [
+        is_payment_enabled, hotel_commission_rate, restaurant_fee_per_person,
+        room_gst_rate ?? DEFAULTS.room_gst_rate,
+        gst_rate, gst_number, business_name, default_payout_days || 7,
+      ]
     );
     res.json(rows[0]);
   } catch (err) {
@@ -39,8 +43,8 @@ const updateSettings = async (req, res) => {
 };
 
 // POST /api/payments/create-order
-// Hotel: guest pays full room price. Platform keeps commission+gst. Owner gets rest after N days.
-// Restaurant: guest pays fee per person (platform service charge). No owner payout.
+// Hotel: guest pays base room price + room GST. Platform deducts commission + commission GST from hotel settlement.
+// Restaurant: guest pays per-person fee + GST on that fee. No owner payout.
 const createOrder = async (req, res) => {
   const { booking_type, booking_amount, party_size, entity_id } = req.body;
   try {
@@ -51,19 +55,29 @@ const createOrder = async (req, res) => {
 
     let totalCharged = 0;
     let commission = 0;
-    let gst = 0;
+    let commissionGst = 0;
+    let roomGstAmount = 0;
+    let roomGstRate = 0;
     let ownerPayout = 0;
 
     if (booking_type === 'hotel') {
-      commission = (parseFloat(booking_amount) * parseFloat(s.hotel_commission_rate)) / 100;
-      gst = (commission * parseFloat(s.gst_rate)) / 100;
-      totalCharged = parseFloat(booking_amount);
-      ownerPayout = totalCharged - commission - gst;
+      const pricing = calculateHotelPricing(booking_amount, {
+        room_gst_rate:      parseFloat(s.room_gst_rate  ?? DEFAULTS.room_gst_rate),
+        commission_rate:    parseFloat(s.hotel_commission_rate),
+        commission_gst_rate: parseFloat(s.gst_rate),
+      });
+
+      roomGstRate    = pricing.room_gst_rate;
+      roomGstAmount  = pricing.room_gst_amount;
+      commission     = pricing.commission_amount;
+      commissionGst  = pricing.commission_gst_amount;
+      totalCharged   = pricing.guest_total;
+      ownerPayout    = pricing.hotel_settlement;
     } else {
-      commission = parseFloat(s.restaurant_fee_per_person) * parseInt(party_size, 10);
-      gst = (commission * parseFloat(s.gst_rate)) / 100;
-      totalCharged = commission + gst;
-      ownerPayout = 0;
+      commission   = parseFloat(s.restaurant_fee_per_person) * parseInt(party_size, 10);
+      commissionGst = (commission * parseFloat(s.gst_rate)) / 100;
+      totalCharged  = commission + commissionGst;
+      ownerPayout   = 0;
     }
 
     if (totalCharged <= 0) return res.json({ skip_payment: true });
@@ -76,15 +90,39 @@ const createOrder = async (req, res) => {
     const { rows: payRows } = await pool.query(
       `INSERT INTO payments
         (user_id, booking_type, entity_id, entity_type, razorpay_order_id,
-         booking_amount, commission_amount, gst_amount, total_amount, commission_rate, gst_rate)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+         booking_amount, room_gst_rate, room_gst_amount,
+         commission_amount, gst_amount, total_amount, commission_rate, gst_rate)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [
         req.user.id, booking_type, entity_id || null, booking_type, order.id,
-        booking_amount, commission.toFixed(2), gst.toFixed(2), totalCharged.toFixed(2),
+        booking_amount,
+        booking_type === 'hotel' ? roomGstRate : 0,
+        booking_type === 'hotel' ? roomGstAmount : 0,
+        commission.toFixed(2), commissionGst.toFixed(2), totalCharged.toFixed(2),
         booking_type === 'hotel' ? s.hotel_commission_rate : s.restaurant_fee_per_person,
         s.gst_rate,
       ]
     );
+
+    // Guest-facing breakdown: never expose commission or commission GST
+    const guestBreakdown = booking_type === 'hotel'
+      ? {
+          booking_amount: parseFloat(booking_amount || 0),
+          room_gst_rate:  roomGstRate,
+          room_gst_amount: parseFloat(roomGstAmount.toFixed(2)),
+          total:          parseFloat(totalCharged.toFixed(2)),
+          gst_number:     s.gst_number,
+          business_name:  s.business_name,
+        }
+      : {
+          restaurant_fee_per_person: parseFloat(s.restaurant_fee_per_person),
+          commission: parseFloat(commission.toFixed(2)),
+          gst_rate:   parseFloat(s.gst_rate),
+          gst:        parseFloat(commissionGst.toFixed(2)),
+          total:      parseFloat(totalCharged.toFixed(2)),
+          gst_number: s.gst_number,
+          business_name: s.business_name,
+        };
 
     res.json({
       order_id: order.id,
@@ -92,18 +130,7 @@ const createOrder = async (req, res) => {
       currency: 'INR',
       payment_id: payRows[0].id,
       key_id: process.env.RAZORPAY_KEY_ID,
-      breakdown: {
-        booking_amount: parseFloat(booking_amount || 0),
-        commission: parseFloat(commission.toFixed(2)),
-        gst: parseFloat(gst.toFixed(2)),
-        total: parseFloat(totalCharged.toFixed(2)),
-        owner_payout: parseFloat(ownerPayout.toFixed(2)),
-        commission_rate: parseFloat(s.hotel_commission_rate),
-        restaurant_fee_per_person: parseFloat(s.restaurant_fee_per_person),
-        gst_rate: parseFloat(s.gst_rate),
-        gst_number: s.gst_number,
-        business_name: s.business_name,
-      },
+      breakdown: guestBreakdown,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -129,10 +156,10 @@ const verifyPayment = async (req, res) => {
       [razorpay_payment_id, razorpay_signature, payment_id]
     );
 
-    // Create payout record for hotel bookings
     const { rows: payRows } = await pool.query('SELECT * FROM payments WHERE id = $1', [payment_id]);
     const payment = payRows[0];
 
+    // Create payout record for hotel bookings
     if (payment?.entity_type === 'hotel' && payment.entity_id) {
       const { rows: hotelRows } = await pool.query(
         `SELECT h.*, u.name as owner_name, u.email as owner_email
@@ -143,12 +170,13 @@ const verifyPayment = async (req, res) => {
       if (hotel) {
         const { rows: setRows } = await pool.query('SELECT default_payout_days FROM payment_settings WHERE id = 1');
         const defaultDays = setRows[0]?.default_payout_days || 7;
-        const payoutDays = hotel.payout_schedule_days || defaultDays;
+        const payoutDays  = hotel.payout_schedule_days || defaultDays;
 
-        const gross = parseFloat(payment.total_amount);
-        const commission = parseFloat(payment.commission_amount);
-        const gst = parseFloat(payment.gst_amount);
-        const net = gross - commission - gst;
+        // gross = what guest paid (base + room GST); commission and commissionGst are the B2B deductions
+        const gross          = parseFloat(payment.total_amount);
+        const commission     = parseFloat(payment.commission_amount);
+        const commissionGst  = parseFloat(payment.gst_amount);
+        const net            = gross - commission - commissionGst;
 
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + payoutDays);
@@ -161,14 +189,14 @@ const verifyPayment = async (req, res) => {
           [
             payment_id, hotel.owner_id, hotel.owner_name, hotel.owner_email,
             'hotel', hotel.id, hotel.name,
-            gross, commission, gst, net.toFixed(2),
+            gross, commission, commissionGst, net.toFixed(2),
             dueDate.toISOString().split('T')[0],
           ]
         );
       }
     }
 
-    // Send payment receipt email
+    // Send guest receipt email (guest-friendly: room price + room GST, no commission)
     const { rows: userRows } = await pool.query('SELECT name, email FROM users WHERE id = $1', [payment.user_id]);
     const guest = userRows[0];
     if (guest && payment) {
@@ -177,20 +205,30 @@ const verifyPayment = async (req, res) => {
         : (await pool.query('SELECT name FROM restaurants WHERE id = $1', [payment.entity_id])).rows[0]?.name;
       const { rows: setRows } = await pool.query('SELECT gst_number, business_name FROM payment_settings WHERE id = 1');
       const ref = payment.id.replace(/-/g, '').slice(0, 8).toUpperCase();
+
+      const receiptBreakdown = payment.booking_type === 'hotel'
+        ? {
+            booking_amount:  parseFloat(payment.booking_amount),
+            room_gst_rate:   parseFloat(payment.room_gst_rate),
+            room_gst_amount: parseFloat(payment.room_gst_amount),
+            total:           parseFloat(payment.total_amount),
+            gst_number:      setRows[0]?.gst_number,
+            business_name:   setRows[0]?.business_name,
+          }
+        : {
+            commission:    parseFloat(payment.commission_amount),
+            gst_rate:      parseFloat(payment.gst_rate),
+            gst:           parseFloat(payment.gst_amount),
+            total:         parseFloat(payment.total_amount),
+            gst_number:    setRows[0]?.gst_number,
+            business_name: setRows[0]?.business_name,
+          };
+
       email.paymentReceipt(guest.email, {
         entityName: entityName || 'Booking',
         ref,
         bookingType: payment.entity_type,
-        breakdown: {
-          booking_amount: parseFloat(payment.booking_amount),
-          commission: parseFloat(payment.commission_amount),
-          gst: parseFloat(payment.gst_amount),
-          total: parseFloat(payment.total_amount),
-          commission_rate: parseFloat(payment.commission_rate),
-          gst_rate: parseFloat(payment.gst_rate),
-          gst_number: setRows[0]?.gst_number,
-          business_name: setRows[0]?.business_name,
-        },
+        breakdown: receiptBreakdown,
       });
     }
 
@@ -205,7 +243,6 @@ const getPayouts = async (req, res) => {
   try {
     const { status, entity_type } = req.query;
 
-    // Auto-flag overdue payouts
     await pool.query(
       "UPDATE payouts SET status = 'due' WHERE status = 'pending' AND due_date <= CURRENT_DATE"
     );
@@ -213,7 +250,7 @@ const getPayouts = async (req, res) => {
     const conditions = [];
     const values = [];
     let idx = 1;
-    if (status) { conditions.push(`p.status = $${idx++}`); values.push(status); }
+    if (status)      { conditions.push(`p.status = $${idx++}`);      values.push(status); }
     if (entity_type) { conditions.push(`p.entity_type = $${idx++}`); values.push(entity_type); }
 
     const { rows } = await pool.query(

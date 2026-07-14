@@ -176,7 +176,16 @@ export default function HotelDashboard() {
                 </div>
                 <div>
                   <p className="text-lg font-bold">₹{Math.round(stats?.total_revenue || 0).toLocaleString()}</p>
-                  <p className="text-xs text-white/50">Total Revenue</p>
+                  <p className="text-xs text-white/50">Gross Revenue (incl. GST)</p>
+                </div>
+              </div>
+              <div className="card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center shrink-0">
+                  <IndianRupee size={18} className="text-green-400" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-green-400">₹{Math.round(stats?.net_settlement || 0).toLocaleString()}</p>
+                  <p className="text-xs text-white/50">Your Earnings (after fees)</p>
                 </div>
               </div>
               <div className="card p-5 flex items-center gap-4">
@@ -185,7 +194,16 @@ export default function HotelDashboard() {
                 </div>
                 <div>
                   <p className="text-lg font-bold">₹{Math.round(stats?.revenue_this_month || 0).toLocaleString()}</p>
-                  <p className="text-xs text-white/50">This Month</p>
+                  <p className="text-xs text-white/50">This Month (gross)</p>
+                </div>
+              </div>
+              <div className="card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center shrink-0">
+                  <IndianRupee size={18} className="text-green-400" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-green-400">₹{Math.round(stats?.net_settlement_this_month || 0).toLocaleString()}</p>
+                  <p className="text-xs text-white/50">This Month (your earnings)</p>
                 </div>
               </div>
             </div>

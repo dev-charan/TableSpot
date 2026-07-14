@@ -16,6 +16,7 @@ export default function AdminSettings() {
         is_payment_enabled: settings.is_payment_enabled ?? false,
         hotel_commission_rate: settings.hotel_commission_rate ?? 0,
         restaurant_fee_per_person: settings.restaurant_fee_per_person ?? 0,
+        room_gst_rate: settings.room_gst_rate ?? 5,
         gst_rate: settings.gst_rate ?? 0,
         gst_number: settings.gst_number ?? '',
         business_name: settings.business_name ?? '',
@@ -47,9 +48,13 @@ export default function AdminSettings() {
 
   const hotelExample = form.is_payment_enabled
     ? (() => {
-        const commission = (10000 * parseFloat(form.hotel_commission_rate || 0)) / 100;
-        const gst = (commission * parseFloat(form.gst_rate || 0)) / 100;
-        return { commission, gst, total: commission + gst };
+        const base         = 10000;
+        const roomGst      = Math.round(base * parseFloat(form.room_gst_rate || 0)) / 100;
+        const guestTotal   = base + roomGst;
+        const commission   = Math.round(base * parseFloat(form.hotel_commission_rate || 0)) / 100;
+        const commissionGst = Math.round(commission * parseFloat(form.gst_rate || 0)) / 100;
+        const settlement   = guestTotal - commission - commissionGst;
+        return { base, roomGst, guestTotal, commission, commissionGst, settlement };
       })()
     : null;
 
@@ -107,11 +112,25 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        {/* GST Rate */}
+        {/* GST Rates */}
         <div className="card p-5 space-y-4">
-          <h3 className="font-semibold flex items-center gap-2"><Receipt size={15} className="text-violet-400" /> GST Rate</h3>
+          <h3 className="font-semibold flex items-center gap-2"><Receipt size={15} className="text-violet-400" /> GST Rates</h3>
           <div>
-            <label className="block text-xs text-white/50 mb-1.5">GST % on commission</label>
+            <label className="block text-xs text-white/50 mb-1.5">Room GST % (charged to guest)</label>
+            <div className="relative">
+              <input
+                type="number" min="0" max="100" step="0.01"
+                value={form.room_gst_rate}
+                onChange={f('room_gst_rate')}
+                className="input pr-10"
+                placeholder="5"
+              />
+              <Percent size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30" />
+            </div>
+            <p className="text-[11px] text-white/30 mt-1">Applied on the base room price. Shown to the guest on checkout.</p>
+          </div>
+          <div>
+            <label className="block text-xs text-white/50 mb-1.5">GST % on platform commission (B2B)</label>
             <div className="relative">
               <input
                 type="number" min="0" max="100" step="0.01"
@@ -122,7 +141,7 @@ export default function AdminSettings() {
               />
               <Percent size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30" />
             </div>
-            <p className="text-[11px] text-white/30 mt-1">GST is calculated on top of commission. Set 0 for no GST.</p>
+            <p className="text-[11px] text-white/30 mt-1">Deducted from hotel settlement. Never shown to the guest.</p>
           </div>
         </div>
 
@@ -143,12 +162,18 @@ export default function AdminSettings() {
             </div>
             <p className="text-[11px] text-white/30 mt-1">Set 0 to charge no commission for hotel bookings.</p>
           </div>
-          {form.is_payment_enabled && hotelExample && hotelExample.commission > 0 && (
+          {form.is_payment_enabled && hotelExample && (
             <div className="bg-violet-500/10 rounded-xl p-3 border border-violet-500/20 text-xs space-y-1">
               <p className="text-violet-300 font-medium flex items-center gap-1"><Info size={11} /> Example: ₹10,000 stay</p>
-              <p className="text-white/50">Commission ({form.hotel_commission_rate}%): ₹{hotelExample.commission.toFixed(2)}</p>
-              <p className="text-white/50">GST ({form.gst_rate}%): ₹{hotelExample.gst.toFixed(2)}</p>
-              <p className="text-white font-semibold">Guest pays: ₹{hotelExample.total.toFixed(2)}</p>
+              <p className="text-white/40 mb-1">Guest pays</p>
+              <p className="text-white/60">Room charges: ₹{hotelExample.base.toLocaleString()}</p>
+              <p className="text-white/60">Room GST ({form.room_gst_rate}%): ₹{hotelExample.roomGst.toFixed(2)}</p>
+              <p className="text-white font-semibold">Guest total: ₹{hotelExample.guestTotal.toFixed(2)}</p>
+              <div className="border-t border-white/10 my-1" />
+              <p className="text-white/40 mb-1">SmartAtithi deducts from hotel</p>
+              <p className="text-red-400/70">Commission ({form.hotel_commission_rate}%): − ₹{hotelExample.commission.toFixed(2)}</p>
+              <p className="text-red-400/50">GST on commission ({form.gst_rate}%): − ₹{hotelExample.commissionGst.toFixed(2)}</p>
+              <p className="text-green-400 font-semibold">Hotel receives: ₹{hotelExample.settlement.toFixed(2)}</p>
             </div>
           )}
         </div>
